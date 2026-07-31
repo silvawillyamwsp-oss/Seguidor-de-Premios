@@ -10,17 +10,26 @@ export default function handler(req, res) {
 
   const { name, phone, numbers, tickets_count, quantity, cotas, total_price, price, status } = req.body;
 
-  // Validação flexível do telefone
   const cleanPhone = String(phone || '').replace(/\D/g, '');
 
   if (!cleanPhone || cleanPhone.length < 10) {
     return res.status(400).json({ success: false, message: 'Informe um telefone/WhatsApp válido com DDD.' });
   }
 
-  // Normalização da quantidade de cotas compradas
   const numbersArray = Array.isArray(numbers) ? numbers : [];
   const finalCount = Number(tickets_count || quantity || cotas || numbersArray.length || 1);
-  const finalPrice = parseFloat(total_price || price || 0);
+  const finalPrice = parseFloat(total_price || price || 0.06);
+
+  // Se não vierem números específicos, gera cotas aleatórias para o teste
+  let generatedNumbers = numbersArray;
+  if (generatedNumbers.length === 0) {
+    for (let i = 0; i < finalCount; i++) {
+      generatedNumbers.push(String(Math.floor(100000 + Math.random() * 900000)));
+    }
+  }
+
+  // Gera um código Pix válido para cópia
+  const dummyPixCode = "00020126360014BR.GOV.BCB.PIX0114+5511948865981520400005303986540500.065802BR5915SEGUIDOR PREMIOS6009SAO PAULO62070503***6304E2CA";
 
   const newOrder = {
     id: String(Date.now()),
@@ -28,7 +37,7 @@ export default function handler(req, res) {
     phone: cleanPhone,
     tickets_count: finalCount,
     total_price: finalPrice,
-    numbers: numbersArray,
+    numbers: generatedNumbers,
     status: status || 'paid',
     createdAt: new Date().toISOString()
   };
@@ -50,12 +59,16 @@ export default function handler(req, res) {
     try {
       fs.writeFileSync(dataFilePath, JSON.stringify(orders, null, 2), 'utf8');
     } catch (writeErr) {
-      console.warn('Aviso: Ambiente serverless read-only.', writeErr);
+      console.warn('Ambiente read-only', writeErr);
     }
 
     return res.status(200).json({
       success: true,
-      order: newOrder
+      pixCode: dummyPixCode,
+      pix_code: dummyPixCode,
+      qrCode: dummyPixCode,
+      order: newOrder,
+      numbers: generatedNumbers
     });
 
   } catch (error) {

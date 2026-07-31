@@ -1,75 +1,77 @@
-import fs from 'fs';
-import path from 'path';
+import { useEffect, useState } from 'react';
 
-const dataFilePath = path.join(process.cwd(), 'data', 'orders.json');
+export default function AdminDashboard() {
+  const [data, setData] = useState({
+    totalCotas: 0,
+    totalArrecadado: 0,
+    totalCompradores: 0,
+    compradores: [],
+    orders: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-export default function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Método não permitido' });
-  }
-
-  try {
-    if (!fs.existsSync(dataFilePath)) {
-      return res.status(200).json({
-        totalCotas: 0,
-        totalArrecadado: 0,
-        totalCompradores: 0,
-        compradores: [],
-        orders: []
+  useEffect(() => {
+    fetch('/api/admin/dashboard')
+      .then((res) => res.json())
+      .then((resData) => {
+        if (resData) {
+          setData({
+            totalCotas: resData.totalCotas || 0,
+            totalArrecadado: resData.totalArrecadado || 0,
+            totalCompradores: resData.totalCompradores || 0,
+            compradores: Array.isArray(resData.compradores) ? resData.compradores : [],
+            orders: Array.isArray(resData.orders) ? resData.orders : []
+          });
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Erro ao carregar dados do admin:", err);
+        setError(true);
+        setLoading(false);
       });
-    }
+  }, []);
 
-    const fileData = fs.readFileSync(dataFilePath, 'utf8');
-    let orders = [];
-    try {
-      orders = JSON.parse(fileData || '[]');
-    } catch (e) {
-      orders = [];
-    }
-
-    const buyersMap = {};
-    let totalCotas = 0;
-    let totalArrecadado = 0;
-
-    orders.forEach(order => {
-      const phone = String(order.phone || '').replace(/\D/g, '');
-      if (!phone) return;
-
-      const orderNumbers = Array.isArray(order.numbers) 
-        ? order.numbers 
-        : (Array.isArray(order.allocatedNumbers) ? order.allocatedNumbers : []);
-      
-      const numTickets = orderNumbers.length || Number(order.tickets_count) || 0;
-      const price = parseFloat(order.total_price) || 0;
-
-      totalCotas += numTickets;
-      totalArrecadado += price;
-
-      if (!buyersMap[phone]) {
-        buyersMap[phone] = {
-          name: order.name || 'Cliente',
-          phone: phone,
-          tickets: [...orderNumbers],
-          totalSpent: price
-        };
-      } else {
-        buyersMap[phone].tickets.push(...orderNumbers);
-        buyersMap[phone].totalSpent += price;
-      }
-    });
-
-    const compradoresList = Object.values(buyersMap);
-
-    return res.status(200).json({
-      totalCotas: totalCotas || 0,
-      totalArrecadado: totalArrecadado || 0,
-      totalCompradores: compradoresList.length || 0,
-      compradores: compradoresList || [],
-      orders: orders || []
-    });
-
-  } catch (error) {
-    console.error('Erro no dashboard admin:', error);
-    return res.status(500).json({ message: 'Erro ao carregar dados.' });
+  if (loading) {
+    return <div style={{ color: '#fff', padding: 20 }}>Carregando painel admin...</div>;
   }
+
+  if (error) {
+    return <div style={{ color: '#fff', padding: 20 }}>Erro ao carregar os dados. Tente recarregar a página.</div>;
+  }
+
+  return (
+    <div style={{ padding: 20, color: '#fff', backgroundColor: '#0f172a', minHeight: '100vh' }}>
+      <h1>Painel Administrativo</h1>
+      <hr />
+      <div style={{ display: 'flex', gap: 20, margin: '20px 0' }}>
+        <div>
+          <h3>Total de Cotas</h3>
+          <p>{data.totalCotas}</p>
+        </div>
+        <div>
+          <h3>Total Arrecadado</h3>
+          <p>R$ {Number(data.totalArrecadado).toFixed(2)}</p>
+        </div>
+        <div>
+          <h3>Compradores</h3>
+          <p>{data.totalCompradores}</p>
+        </div>
+      </div>
+
+      <h2>Lista de Pedidos</h2>
+      {data.orders.length === 0 ? (
+        <p>Nenhum pedido encontrado.</p>
+      ) : (
+        <ul>
+          {data.orders.map((order, index) => (
+            <li key={order.id || index} style={{ marginBottom: 10 }}>
+              <strong>{order.name || 'Cliente'}</strong> - {order.phone} | Cotas: {(order.numbers || []).join(', ')} | Status: {order.status}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
