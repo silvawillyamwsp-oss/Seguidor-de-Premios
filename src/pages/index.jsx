@@ -188,7 +188,7 @@ export default function Home() {
               alignItems: 'center'
             }}
           >
-            🟢 Quem somos!
+            🟢 Quem somos
           </a>
         </div>
       </div>
@@ -234,7 +234,7 @@ export default function Home() {
         {/* Banner do Carro e Selo de Preço */}
         <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)', border: '1px solid #334155', padding: '16px', textAlign: 'center' }}>
           <img 
-            src="/images/t-cross.JPEG" 
+            src="public/images/t-cross.JPEG" 
             alt="Prêmio do Sorteio"
             onError={(e) => {
               e.target.onerror = null;
