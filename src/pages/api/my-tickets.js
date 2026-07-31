@@ -12,14 +12,14 @@ export default function handler(req, res) {
   const phoneInput = req.method === 'GET' ? req.query.phone : req.body.phone;
 
   if (!phoneInput) {
-    return res.status(400).json({ message: 'Telefone é obrigatório.' });
+    return res.status(400).json({ success: false, message: 'Telefone é obrigatório.' });
   }
 
-  // Remove caracteres não numéricos para comparar apenas os dígitos
+  // Sanitiza o telefone de entrada (remove parênteses, traços, espaços, etc.)
   const cleanPhone = String(phoneInput).replace(/\D/g, '');
 
-  if (!cleanPhone) {
-    return res.status(400).json({ message: 'Telefone inválido.' });
+  if (cleanPhone.length < 10) {
+    return res.status(400).json({ success: false, message: 'Informe um telefone/WhatsApp válido com DDD.' });
   }
 
   try {
@@ -31,13 +31,19 @@ export default function handler(req, res) {
     const orders = JSON.parse(fileData || '[]');
 
     // Filtra todas as compras pertencentes ao telefone digitado
+    // (Compara o número limpo e também verifica pelos últimos 8 ou 9 dígitos para pegar compras antigas)
     const userOrders = orders.filter(order => {
       const orderPhone = String(order.phone || '').replace(/\D/g, '');
-      return orderPhone === cleanPhone;
+      if (!orderPhone) return false;
+
+      const mainDigitsSearch = cleanPhone.slice(-8);
+      const mainDigitsOrder = orderPhone.slice(-8);
+
+      return orderPhone === cleanPhone || mainDigitsOrder === mainDigitsSearch;
     });
 
     // Agrupa todos os números/cotas do usuário
-    const allNumbers = userOrders.flatMap(order => order.numbers || []);
+    const allNumbers = userOrders.flatMap(order => order.numbers || order.allocatedNumbers || []);
 
     return res.status(200).json({
       success: true,
@@ -47,6 +53,6 @@ export default function handler(req, res) {
 
   } catch (error) {
     console.error('Erro ao buscar números do cliente:', error);
-    return res.status(500).json({ message: 'Erro ao consultar cotas.' });
+    return res.status(500).json({ success: false, message: 'Erro ao consultar cotas.' });
   }
 }

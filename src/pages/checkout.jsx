@@ -45,8 +45,11 @@ export default function Checkout() {
   const handleConfirmPayment = async (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !phone.trim()) {
-      alert('Por favor, informe seu nome completo e telefone.');
+    // Remove parênteses, traços, espaços e caracteres não numéricos
+    const cleanPhone = phone.replace(/\D/g, '');
+
+    if (!name.trim() || cleanPhone.length < 10) {
+      alert('Por favor, informe seu nome completo e um telefone/WhatsApp válido com DDD.');
       return;
     }
 
@@ -58,7 +61,7 @@ export default function Checkout() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           name: name.trim(), 
-          phone: phone.trim(), 
+          phone: cleanPhone, // Envia o telefone higienizado (somente números)
           qty: totalQty 
         })
       });
