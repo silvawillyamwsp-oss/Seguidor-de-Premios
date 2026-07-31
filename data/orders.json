@@ -1,0 +1,24 @@
+[
+  {
+    "id": "170467306539",
+    "name": "willyam",
+    "phone": "11948865981",
+    "tickets_count": 1,
+    "total_price": 0.06,
+    "numbers": [
+      "622153"
+    ],
+    "createdAt": "2026-07-31T13:10:07.199Z"
+  },
+  {
+    "id": "170464633201",
+    "name": "isabelle",
+    "phone": "11945335602",
+    "tickets_count": 1,
+    "total_price": 0.06,
+    "numbers": [
+      "751851"
+    ],
+    "createdAt": "2026-07-31T13:00:35.702Z"
+  }
+]
