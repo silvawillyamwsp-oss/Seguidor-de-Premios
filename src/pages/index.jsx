@@ -108,27 +108,28 @@ export default function Home() {
       <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         
         {/* Substituição da Águia pela Imagem da Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img 
-            src="/images/logo.JFIF" 
-            alt="Logo Seguidor de Sonhos" 
-            style={{ 
-              width: '71px', 
-              height: '71px', 
-              borderRadius: '50%', 
-              objectFit: 'cover',
-              border: '1px solid #fbbf24'
-            }} 
-          />
-          <div>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: '900', letterSpacing: '1px', margin: 0, color: '#f8fafc' }}>
-              SEGUIDOR
-            </h1>
-            <span style={{ fontSize: '0.65rem', color: '#fbbf24', letterSpacing: '2px', fontWeight: 'bold' }}>
-              ★ DE PRÊMIOS ★
-            </span>
-          </div>
-        </div>
+{/* Substituição da Águia pela Imagem da Logo */}
+<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+  <img 
+    src="/images/logo.jfif" 
+    alt="Logo Seguidor de Sonhos" 
+    style={{
+      width: '71px',
+      height: '71px',
+      borderRadius: '50%',
+      objectFit: 'cover',
+      border: '1px solid #fbbf24'
+    }} 
+  />
+  <div>
+    <h1 style={{ fontSize: '1.2rem', fontWeight: '900' }}>
+      SEGUIDOR
+    </h1>
+    <span style={{ fontSize: '0.65rem', color: '#fbbf24' }}>
+      ★ DE PRÊMIOS ★
+    </span>
+  </div>
+</div>
         
         {/* Grupo de Botões do Topo */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
