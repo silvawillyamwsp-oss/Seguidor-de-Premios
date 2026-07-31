@@ -107,29 +107,28 @@ export default function Home() {
       {/* Top Bar Header com Atalho Meus Números */}
       <div style={{ maxWidth: '600px', margin: '0 auto', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
         
-        {/* Substituição da Águia pela Imagem da Logo */}
-{/* Substituição da Águia pela Imagem da Logo */}
-<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-  <img 
-    src="/images/logo.JFIF" 
-    alt="Logo Seguidor de Sonhos" 
-    style={{
-      width: '71px',
-      height: '71px',
-      borderRadius: '50%',
-      objectFit: 'cover',
-      border: '1px solid #fbbf24'
-    }} 
-  />
-  <div>
-    <h1 style={{ fontSize: '1.2rem', fontWeight: '900' }}>
-      SEGUIDOR
-    </h1>
-    <span style={{ fontSize: '0.65rem', color: '#fbbf24' }}>
-      ★ DE PRÊMIOS ★
-    </span>
-  </div>
-</div>
+        {/* Logo do Topo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img 
+            src="/images/logo.jfif" 
+            alt="Logo Seguidor de Sonhos" 
+            style={{
+              width: '71px',
+              height: '71px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: '1px solid #fbbf24'
+            }} 
+          />
+          <div>
+            <h1 style={{ fontSize: '1.2rem', fontWeight: '900' }}>
+              SEGUIDOR
+            </h1>
+            <span style={{ fontSize: '0.65rem', color: '#fbbf24' }}>
+              ★ DE PRÊMIOS ★
+            </span>
+          </div>
+        </div>
         
         {/* Grupo de Botões do Topo */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -189,7 +188,7 @@ export default function Home() {
               alignItems: 'center'
             }}
           >
-            🟢 Rifa Oficial
+            🟢 Quem somos!
           </a>
         </div>
       </div>
@@ -235,7 +234,7 @@ export default function Home() {
         {/* Banner do Carro e Selo de Preço */}
         <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', background: 'radial-gradient(circle, #1e293b 0%, #0f172a 100%)', border: '1px solid #334155', padding: '16px', textAlign: 'center' }}>
           <img 
-            src="/images/t-cross.jpeg" 
+            src="/images/t-cross.JFIF" 
             alt="Prêmio do Sorteio"
             onError={(e) => {
               e.target.onerror = null;
@@ -349,15 +348,34 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Rodapé */}
-        <div style={{ borderTop: '1px solid #1e293b', marginTop: '30px', paddingTop: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.75rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {/* Rodapé Informativo e Termos de Uso */}
+        <footer style={{ 
+          marginTop: '30px', 
+          padding: '24px 16px', 
+          borderTop: '1px solid #1e293b', 
+          fontSize: '0.75rem', 
+          color: '#94a3b8', 
+          textAlign: 'center', 
+          lineHeight: '1.6' 
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '16px', flexWrap: 'wrap', color: '#64748b' }}>
             <span>🛡️ Pagamento 100% Seguro</span>
             <span>🎲 Sorteio pela Loteria Federal</span>
             <span>⚡ PIX Pagamento Instantâneo</span>
           </div>
-          <p>© Seguidor de Prêmios - Todos os direitos reservados.</p>
-        </div>
+
+          <p style={{ marginBottom: '16px' }}>
+            Este bilhete de loteria está autorizado com base na portaria AUTORIZAÇÃO LOTEP. Antes de contratar, consulte o Regulamento do produto. É proibida a venda para menores de 18 anos. Os sorteios e entrega dos prêmios serão realizados de acordo com os critérios estabelecidos neste site, nos termos seguintes: O adquirente concorrerá em todos os sorteios previstos no bilhete digital emitido, mesmo sendo contemplado em alguns deles. Ao contribuir, o titular do BILHETE Digital concorda desde já e sem ônus a utilização de seu nome, sua voz e imagem para a divulgação desta campanha social. Confira o resultado dos sorteios e as condições de participação em <strong>www.seguidordepremios.com.br</strong>
+          </p>
+
+          <p style={{ marginBottom: '12px', fontStyle: 'italic', opacity: 0.8 }}>
+            Imagens meramente ilustrativas
+          </p>
+
+          <p style={{ color: '#cbd5e1', fontWeight: '500' }}>
+            2026 - <strong>Seguidor de Prêmios</strong>
+          </p>
+        </footer>
 
       </div>
     </div>
