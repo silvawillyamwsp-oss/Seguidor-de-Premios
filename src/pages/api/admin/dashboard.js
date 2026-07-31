@@ -4,6 +4,10 @@ import path from 'path';
 const dataFilePath = path.join(process.cwd(), 'data', 'orders.json');
 
 export default function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ message: 'Método não permitido' });
+  }
+
   try {
     if (!fs.existsSync(dataFilePath)) {
       return res.status(200).json({
@@ -17,17 +21,20 @@ export default function handler(req, res) {
     const fileData = fs.readFileSync(dataFilePath, 'utf8');
     const orders = JSON.parse(fileData || '[]');
 
-    // Filtra apenas compras pagas ou registros válidos antigos
-    const paidOrders = orders.filter(o => !o.status || o.status === 'paid' || o.status === 'approved' || o.status === 'concluido');
-
-    // Mapeia e agrupa por comprador/telefone
     const buyersMap = {};
     let totalCotas = 0;
     let totalArrecadado = 0;
 
-    paidOrders.forEach(order => {
+    orders.forEach(order => {
+      // Normalização e prevenção de erros por campos inexistentes
       const phone = String(order.phone || '').replace(/\D/g, '');
-      const numTickets = (order.numbers || []).length || order.tickets_count || 0;
+      if (!phone) return;
+
+      const orderNumbers = Array.isArray(order.numbers) 
+        ? order.numbers 
+        : (Array.isArray(order.allocatedNumbers) ? order.allocatedNumbers : []);
+      
+      const numTickets = orderNumbers.length || Number(order.tickets_count) || 0;
       const price = parseFloat(order.total_price) || 0;
 
       totalCotas += numTickets;
@@ -37,11 +44,11 @@ export default function handler(req, res) {
         buyersMap[phone] = {
           name: order.name || 'Cliente',
           phone: phone,
-          tickets: [...(order.numbers || [])],
+          tickets: [...orderNumbers],
           totalSpent: price
         };
       } else {
-        buyersMap[phone].tickets.push(...(order.numbers || []));
+        buyersMap[phone].tickets.push(...orderNumbers);
         buyersMap[phone].totalSpent += price;
       }
     });
@@ -56,7 +63,7 @@ export default function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Erro no dashboard admin:', error);
-    return res.status(500).json({ message: 'Erro ao carregar o dashboard.' });
+    console.error('Erro ao carregar dados do admin:', error);
+    return res.status(500).json({ message: 'Erro ao processar dados do painel.' });
   }
 }
