@@ -14,19 +14,24 @@ export default function handler(req, res) {
         totalCotas: 0,
         totalArrecadado: 0,
         totalCompradores: 0,
-        compradores: []
+        compradores: [],
+        orders: []
       });
     }
 
     const fileData = fs.readFileSync(dataFilePath, 'utf8');
-    const orders = JSON.parse(fileData || '[]');
+    let orders = [];
+    try {
+      orders = JSON.parse(fileData || '[]');
+    } catch (e) {
+      orders = [];
+    }
 
     const buyersMap = {};
     let totalCotas = 0;
     let totalArrecadado = 0;
 
     orders.forEach(order => {
-      // Normalização e prevenção de erros por campos inexistentes
       const phone = String(order.phone || '').replace(/\D/g, '');
       if (!phone) return;
 
@@ -56,14 +61,15 @@ export default function handler(req, res) {
     const compradoresList = Object.values(buyersMap);
 
     return res.status(200).json({
-      totalCotas,
-      totalArrecadado,
-      totalCompradores: compradoresList.length,
-      compradores: compradoresList
+      totalCotas: totalCotas || 0,
+      totalArrecadado: totalArrecadado || 0,
+      totalCompradores: compradoresList.length || 0,
+      compradores: compradoresList || [],
+      orders: orders || []
     });
 
   } catch (error) {
-    console.error('Erro ao carregar dados do admin:', error);
-    return res.status(500).json({ message: 'Erro ao processar dados do painel.' });
+    console.error('Erro no dashboard admin:', error);
+    return res.status(500).json({ message: 'Erro ao carregar dados.' });
   }
 }

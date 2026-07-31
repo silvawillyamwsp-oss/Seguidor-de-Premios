@@ -8,38 +8,34 @@ export default function handler(req, res) {
     return res.status(405).json({ message: 'Método não permitido' });
   }
 
-  const { name, phone, numbers, tickets_count, total_price, status } = req.body;
+  const { name, phone, numbers, tickets_count, quantity, cotas, total_price, price, status } = req.body;
 
-  // Validação básica dos dados recebidos
-  if (!phone || (!numbers && !tickets_count)) {
-    return res.status(400).json({ success: false, message: 'Dados de compra incompletos.' });
+  // Validação flexível do telefone
+  const cleanPhone = String(phone || '').replace(/\D/g, '');
+
+  if (!cleanPhone || cleanPhone.length < 10) {
+    return res.status(400).json({ success: false, message: 'Informe um telefone/WhatsApp válido com DDD.' });
   }
 
-  // Limpa a formatação do telefone deixando apenas os dígitos
-  const cleanPhone = String(phone).replace(/\D/g, '');
-
-  if (cleanPhone.length < 10) {
-    return res.status(400).json({ success: false, message: 'Telefone inválido.' });
-  }
-
-  // Garante que 'numbers' seja sempre um array válido
+  // Normalização da quantidade de cotas compradas
   const numbersArray = Array.isArray(numbers) ? numbers : [];
+  const finalCount = Number(tickets_count || quantity || cotas || numbersArray.length || 1);
+  const finalPrice = parseFloat(total_price || price || 0);
 
   const newOrder = {
     id: String(Date.now()),
     name: name || 'Cliente',
     phone: cleanPhone,
-    tickets_count: tickets_count || numbersArray.length,
-    total_price: parseFloat(total_price) || 0,
+    tickets_count: finalCount,
+    total_price: finalPrice,
     numbers: numbersArray,
-    status: status || 'paid', // Registra o pedido como pago por padrão
+    status: status || 'paid',
     createdAt: new Date().toISOString()
   };
 
   try {
     let orders = [];
 
-    // Lê os dados do arquivo orders.json se existir
     if (fs.existsSync(dataFilePath)) {
       const fileData = fs.readFileSync(dataFilePath, 'utf8');
       try {
@@ -49,14 +45,12 @@ export default function handler(req, res) {
       }
     }
 
-    // Adiciona o novo pedido ao array
     orders.push(newOrder);
 
-    // Tenta salvar localmente (funciona em desenvolvimento no VS Code)
     try {
       fs.writeFileSync(dataFilePath, JSON.stringify(orders, null, 2), 'utf8');
     } catch (writeErr) {
-      console.warn('Aviso: Ambiente serverless/read-only. A gravação no arquivo estático não persiste em produção sem banco de dados.', writeErr);
+      console.warn('Aviso: Ambiente serverless read-only.', writeErr);
     }
 
     return res.status(200).json({
