@@ -1,8 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 
-const dataFilePath = path.join(process.cwd(), 'data', 'orders.json');
-
 export default function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ message: 'Método não permitido' });
@@ -21,29 +19,38 @@ export default function handler(req, res) {
   }
 
   try {
+    const dataFilePath = path.join(process.cwd(), 'data', 'orders.json');
+
     if (!fs.existsSync(dataFilePath)) {
       return res.status(200).json({ success: true, tickets: [], orders: [] });
     }
 
     const fileData = fs.readFileSync(dataFilePath, 'utf8');
-    const orders = JSON.parse(fileData || '[]');
+    let orders = [];
+    
+    try {
+      orders = JSON.parse(fileData || '[]');
+    } catch (parseError) {
+      console.error('Erro ao fazer parse do JSON:', parseError);
+      orders = [];
+    }
 
     const userOrders = orders.filter(order => {
       const orderPhone = String(order.phone || '').replace(/\D/g, '');
       if (!orderPhone) return false;
 
-      // Compara número completo ou últimos 8 dígitos
-      return orderPhone === cleanPhone || orderPhone.slice(-8) === cleanPhone.slice(-8);
+      const isPhoneMatch = orderPhone === cleanPhone || orderPhone.slice(-8) === cleanPhone.slice(-8);
+      const isPaid = !order.status || order.status === 'approved' || order.status === 'paid' || order.status === 'concluido';
+
+      return isPhoneMatch && isPaid;
     });
 
-    // Agrupa todos os números com segurança contra nulos
     const allNumbers = userOrders.flatMap(order => {
       if (Array.isArray(order.numbers)) return order.numbers;
       if (Array.isArray(order.allocatedNumbers)) return order.allocatedNumbers;
       return [];
     });
 
-    // Remove duplicatas de cotas
     const uniqueNumbers = [...new Set(allNumbers)];
 
     return res.status(200).json({
