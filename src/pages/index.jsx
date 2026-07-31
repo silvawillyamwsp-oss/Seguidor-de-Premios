@@ -111,7 +111,7 @@ export default function Home() {
 {/* Substituição da Águia pela Imagem da Logo */}
 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
   <img 
-    src="/images/logo.jfif" 
+    src="/images/logo.JFIF" 
     alt="Logo Seguidor de Sonhos" 
     style={{
       width: '71px',
@@ -241,7 +241,7 @@ export default function Home() {
               e.target.onerror = null;
               e.target.src = "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80";
             }}
-            style={{ width: '100%', borderRadius: '12px', objectFit: 'cover', height: '380px' }}
+            style={{ width: '100%', height: 'auto', borderRadius: '12px', objectFit: 'contain' }}
           />
 
           <div style={{ background: 'linear-gradient(90deg, #dc2626 0%, #b91c1c 100%)', color: '#fff', padding: '8px 20px', borderRadius: '8px', display: 'inline-block', marginTop: '-20px', position: 'relative', zIndex: 10, boxShadow: '0 4px 15px rgba(220, 38, 38, 0.5)', border: '2px solid #ef4444' }}>
