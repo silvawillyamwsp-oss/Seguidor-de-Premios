@@ -4,36 +4,59 @@ import path from 'path';
 const dataFilePath = path.join(process.cwd(), 'data', 'orders.json');
 
 export default function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Método não permitido' });
-  }
-
   try {
     if (!fs.existsSync(dataFilePath)) {
       return res.status(200).json({
-        totalTickets: 0,
-        totalRevenue: 0,
-        participants: []
+        totalCotas: 0,
+        totalArrecadado: 0,
+        totalCompradores: 0,
+        compradores: []
       });
     }
 
     const fileData = fs.readFileSync(dataFilePath, 'utf8');
     const orders = JSON.parse(fileData || '[]');
 
-    const totalTickets = orders.reduce((acc, curr) => acc + Number(curr.tickets_count || 0), 0);
-    const totalRevenue = orders.reduce((acc, curr) => acc + Number(curr.total_price || 0), 0);
+    // Filtra apenas compras pagas ou registros válidos antigos
+    const paidOrders = orders.filter(o => !o.status || o.status === 'paid' || o.status === 'approved' || o.status === 'concluido');
+
+    // Mapeia e agrupa por comprador/telefone
+    const buyersMap = {};
+    let totalCotas = 0;
+    let totalArrecadado = 0;
+
+    paidOrders.forEach(order => {
+      const phone = String(order.phone || '').replace(/\D/g, '');
+      const numTickets = (order.numbers || []).length || order.tickets_count || 0;
+      const price = parseFloat(order.total_price) || 0;
+
+      totalCotas += numTickets;
+      totalArrecadado += price;
+
+      if (!buyersMap[phone]) {
+        buyersMap[phone] = {
+          name: order.name || 'Cliente',
+          phone: phone,
+          tickets: [...(order.numbers || [])],
+          totalSpent: price
+        };
+      } else {
+        buyersMap[phone].tickets.push(...(order.numbers || []));
+        buyersMap[phone].totalSpent += price;
+      }
+    });
+
+    const compradoresList = Object.values(buyersMap);
 
     return res.status(200).json({
-      totalTickets,
-      totalRevenue,
-      participants: orders
+      totalCotas,
+      totalArrecadado,
+      totalCompradores: compradoresList.length,
+      compradores: compradoresList
     });
+
   } catch (error) {
-    console.error('Erro ao ler dados do dashboard:', error);
-    return res.status(500).json({ 
-      totalTickets: 0, 
-      totalRevenue: 0, 
-      participants: [] 
-    });
+    console.error('Erro no dashboard admin:', error);
+    return res.status(500).json({ message: 'Erro ao carregar o dashboard.' });
   }
 }
