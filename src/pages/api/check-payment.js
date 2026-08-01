@@ -1,7 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-
-const dataFilePath = path.join(process.cwd(), 'data', 'orders.json');
+import prisma from '../../lib/prisma';
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -13,7 +10,6 @@ export default async function handler(req, res) {
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN || 'APP_USR-262874679746832-073107-da4bdec70c57cb8f045cdb4dc6974eaf-1094025176';
 
   try {
-    // Consulta o status real no Mercado Pago
     const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -23,27 +19,12 @@ export default async function handler(req, res) {
     const mpData = await mpRes.json();
     const currentStatus = mpData.status || 'pending';
 
-    // Atualiza a lista em memória/local caso o status seja aprovado
-    if (fs.existsSync(dataFilePath)) {
-      try {
-        const fileContent = fs.readFileSync(dataFilePath, 'utf8');
-        let orders = JSON.parse(fileContent || '[]');
-        
-        let updated = false;
-        orders = orders.map(order => {
-          if (String(order.id) === String(id) || String(order.paymentId) === String(id)) {
-            order.status = currentStatus;
-            updated = true;
-          }
-          return order;
-        });
-
-        if (updated) {
-          fs.writeFileSync(dataFilePath, JSON.stringify(orders, null, 2), 'utf8');
-        }
-      } catch (err) {
-        console.error('Erro ao atualizar pedidos no JSON:', err);
-      }
+    // Atualiza o registro no banco de dados
+    if (currentStatus === 'approved') {
+      await prisma.order.updateMany({
+        where: { id: String(id) },
+        data: { status: 'approved' }
+      });
     }
 
     return res.status(200).json({ status: currentStatus });

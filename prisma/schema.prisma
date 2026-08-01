@@ -1,0 +1,20 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Order {
+  id           String   @id
+  name         String
+  phone        String
+  ticketsCount Int
+  totalPrice   Float
+  numbers      String[]
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+}

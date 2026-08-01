@@ -1,7 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-
-const dataFilePath = path.join(process.cwd(), 'data', 'orders.json');
+import prisma from '../../lib/prisma';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -9,7 +6,6 @@ export default async function handler(req, res) {
   }
 
   const { name, phone, qty, tickets_count, quantity } = req.body;
-
   const cleanPhone = String(phone || '').replace(/\D/g, '');
 
   if (!name || !cleanPhone || cleanPhone.length < 10) {
@@ -20,7 +16,7 @@ export default async function handler(req, res) {
   const unitPrice = Number(process.env.NEXT_PUBLIC_TICKET_PRICE) || 0.06;
   const totalPrice = parseFloat((totalQty * unitPrice).toFixed(2));
 
-  // Gera cotas para o comprador
+  // Gera as cotas únicas para o comprador
   const generatedNumbers = [];
   for (let i = 0; i < totalQty; i++) {
     generatedNumbers.push(String(Math.floor(100000 + Math.random() * 900000)));
@@ -29,7 +25,6 @@ export default async function handler(req, res) {
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN || 'APP_USR-262874679746832-073107-da4bdec70c57cb8f045cdb4dc6974eaf-1094025176';
 
   try {
-    // Chamada oficial à API do Mercado Pago
     const mpResponse = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
       headers: {
@@ -52,42 +47,30 @@ export default async function handler(req, res) {
     const mpData = await mpResponse.json();
 
     if (!mpResponse.ok || !mpData.point_of_interaction) {
-      console.error('Erro na resposta do Mercado Pago:', mpData);
+      console.error('Erro Mercado Pago:', mpData);
       return res.status(400).json({
         success: false,
-        message: mpData.message || 'Erro ao gerar o Pix com o Mercado Pago.'
+        message: mpData.message || 'Erro ao gerar o PIX com o Mercado Pago.'
       });
     }
 
     const transactionData = mpData.point_of_interaction.transaction_data;
     const pixCode = transactionData.qr_code;
     const qrCodeBase64 = transactionData.qr_code_base64;
-    const paymentId = mpData.id;
+    const paymentId = String(mpData.id);
 
-    // Estrutura do novo pedido
-    const newOrder = {
-      id: String(paymentId),
-      name: name.trim(),
-      phone: cleanPhone,
-      tickets_count: totalQty,
-      total_price: totalPrice,
-      numbers: generatedNumbers,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-
-    // Salva o pedido no banco/JSON local
-    try {
-      let orders = [];
-      if (fs.existsSync(dataFilePath)) {
-        const fileData = fs.readFileSync(dataFilePath, 'utf8');
-        orders = JSON.parse(fileData || '[]');
+    // Persiste no banco de dados imediatamente (status pending)
+    const newOrder = await prisma.order.create({
+      data: {
+        id: paymentId,
+        name: name.trim(),
+        phone: cleanPhone,
+        ticketsCount: totalQty,
+        totalPrice: totalPrice,
+        numbers: generatedNumbers,
+        status: 'pending'
       }
-      orders.push(newOrder);
-      fs.writeFileSync(dataFilePath, JSON.stringify(orders, null, 2), 'utf8');
-    } catch (err) {
-      console.warn('Registro local falhou (sem efeito no Pix):', err);
-    }
+    });
 
     return res.status(200).json({
       success: true,
@@ -102,6 +85,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Erro de servidor ao gerar Pix:', error);
-    return res.status(500).json({ success: false, message: 'Erro interno ao comunicar com o gateway Pix.' });
+    return res.status(500).json({ success: false, message: 'Erro interno ao processar a cota.' });
   }
 }

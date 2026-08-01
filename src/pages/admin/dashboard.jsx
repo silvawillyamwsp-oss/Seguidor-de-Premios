@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 export default function AdminDashboard() {
   const [data, setData] = useState({ totalTickets: 0, totalRevenue: 0, participants: [] });
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState(''); // Estado da pesquisa
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedNumbers, setSelectedNumbers] = useState(null);
   const [selectedName, setSelectedName] = useState('');
   const router = useRouter();
@@ -12,10 +12,16 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const res = await fetch('/api/admin/dashboard');
+        const res = await fetch('/api/admin/orders');
         if (res.ok) {
           const result = await res.json();
-          setData(result);
+          if (result.success) {
+            setData({
+              totalTickets: result.totalTickets || 0,
+              totalRevenue: result.totalRevenue || 0,
+              participants: result.participants || []
+            });
+          }
         }
       } catch (err) {
         console.error('Erro ao carregar dashboard', err);
@@ -41,16 +47,17 @@ export default function AdminDashboard() {
     setSelectedName('');
   };
 
-  // Lógica de busca: Filtra por nome, telefone ou se o array de números contém a cota digitada
+  // Filtra por Nome, Telefone, Cota ou Status
   const filteredParticipants = data.participants.filter((item) => {
     const term = searchTerm.toLowerCase().trim();
     if (!term) return true;
 
     const matchesName = (item.name || '').toLowerCase().includes(term);
     const matchesPhone = (item.phone || '').includes(term);
-    const matchesTicket = (item.numbers || []).some(num => num.includes(term));
+    const matchesTicket = (item.numbers || []).some((num) => String(num).includes(term));
+    const matchesStatus = (item.status || '').toLowerCase().includes(term);
 
-    return matchesName || matchesPhone || matchesTicket;
+    return matchesName || matchesPhone || matchesTicket || matchesStatus;
   });
 
   return (
@@ -78,7 +85,7 @@ export default function AdminDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
             
             <div style={{ background: '#0f172a', border: '1px solid #1e293b', padding: '20px', borderRadius: '16px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Total de Cotas Vendidas</span>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Total de Cotas Geradas</span>
               <h2 style={{ fontSize: '2.2rem', margin: '8px 0 0', color: '#38bdf8', fontWeight: '900' }}>
                 {data.totalTickets} <span style={{ fontSize: '1rem', color: '#64748b' }}>cotas</span>
               </h2>
@@ -92,9 +99,9 @@ export default function AdminDashboard() {
             </div>
 
             <div style={{ background: '#0f172a', border: '1px solid #1e293b', padding: '20px', borderRadius: '16px' }}>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Total de Compradores</span>
+              <span style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase' }}>Total de Pedidos</span>
               <h2 style={{ fontSize: '2.2rem', margin: '8px 0 0', color: '#facc15', fontWeight: '900' }}>
-                {data.participants.length} <span style={{ fontSize: '1rem', color: '#64748b' }}>pessoas</span>
+                {data.participants.length} <span style={{ fontSize: '1rem', color: '#64748b' }}>pedidos</span>
               </h2>
             </div>
 
@@ -104,12 +111,12 @@ export default function AdminDashboard() {
           <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '24px' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>Lista de Compradores</h3>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>Lista de Pedidos & Cotas</h3>
 
-              {/* CAMPO DE PESQUISA POR COTA / NOME / TELEFONE */}
+              {/* CAMPO DE PESQUISA */}
               <input
                 type="text"
-                placeholder="🔎 Buscar por Nº da Cota, Nome ou Telefone..."
+                placeholder="🔎 Buscar por Nº da Cota, Nome, Telefone ou Status..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -118,7 +125,7 @@ export default function AdminDashboard() {
                   color: '#fff',
                   padding: '10px 16px',
                   borderRadius: '8px',
-                  minWidth: '300px',
+                  minWidth: '320px',
                   fontSize: '0.9rem',
                   outline: 'none'
                 }}
@@ -127,46 +134,63 @@ export default function AdminDashboard() {
 
             {filteredParticipants.length === 0 ? (
               <p style={{ color: '#64748b', margin: '16px 0 0' }}>
-                {searchTerm ? `Nenhum resultado encontrado para "${searchTerm}".` : 'Nenhuma compra registrada até o momento.'}
+                {searchTerm ? `Nenhum resultado encontrado para "${searchTerm}".` : 'Nenhum pedido registrado até o momento.'}
               </p>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8', fontSize: '0.85rem' }}>
+                      <th style={{ padding: '12px' }}>STATUS</th>
                       <th style={{ padding: '12px' }}>NOME</th>
                       <th style={{ padding: '12px' }}>TELEFONE / WHATSAPP</th>
                       <th style={{ padding: '12px' }}>COTAS (CLIQUE P/ VER)</th>
-                      <th style={{ padding: '12px' }}>VALOR PAGO</th>
+                      <th style={{ padding: '12px' }}>VALOR</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredParticipants.map((item, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #1e293b', fontSize: '0.95rem' }}>
-                        <td style={{ padding: '14px 12px', fontWeight: 'bold' }}>{item.name || 'Não informado'}</td>
-                        <td style={{ padding: '14px 12px', color: '#38bdf8' }}>{item.phone}</td>
-                        <td style={{ padding: '14px 12px' }}>
-                          <button
-                            onClick={() => handleOpenNumbers(item)}
-                            style={{
-                              background: '#1e293b',
-                              color: '#38bdf8',
-                              border: '1px solid #3b82f6',
-                              padding: '6px 12px',
-                              borderRadius: '6px',
+                    {filteredParticipants.map((item, idx) => {
+                      const isApproved = item.status === 'approved';
+                      return (
+                        <tr key={item.id || idx} style={{ borderBottom: '1px solid #1e293b', fontSize: '0.95rem' }}>
+                          <td style={{ padding: '14px 12px' }}>
+                            <span style={{
+                              padding: '4px 10px',
+                              borderRadius: '20px',
+                              fontSize: '0.75rem',
                               fontWeight: 'bold',
-                              cursor: 'pointer',
-                              fontSize: '0.85rem'
-                            }}
-                          >
-                            🔍 {item.tickets_count} cota(s)
-                          </button>
-                        </td>
-                        <td style={{ padding: '14px 12px', color: '#4ade80', fontWeight: 'bold' }}>
-                          {Number(item.total_price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </td>
-                      </tr>
-                    ))}
+                              textTransform: 'uppercase',
+                              background: isApproved ? '#166534' : '#854d0e',
+                              color: isApproved ? '#4ade80' : '#fef08a'
+                            }}>
+                              {isApproved ? 'Aprovado' : 'Pendente'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '14px 12px', fontWeight: 'bold' }}>{item.name || 'Não informado'}</td>
+                          <td style={{ padding: '14px 12px', color: '#38bdf8' }}>{item.phone}</td>
+                          <td style={{ padding: '14px 12px' }}>
+                            <button
+                              onClick={() => handleOpenNumbers(item)}
+                              style={{
+                                background: '#1e293b',
+                                color: '#38bdf8',
+                                border: '1px solid #3b82f6',
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem'
+                              }}
+                            >
+                              🔍 {item.ticketsCount || (item.numbers ? item.numbers.length : 0)} cota(s)
+                            </button>
+                          </td>
+                          <td style={{ padding: '14px 12px', color: '#4ade80', fontWeight: 'bold' }}>
+                            {Number(item.totalPrice || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
