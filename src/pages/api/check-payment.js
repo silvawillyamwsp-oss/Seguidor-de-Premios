@@ -1,33 +1,55 @@
-import { MercadoPagoConfig, Payment } from 'mercadopago';
+import fs from 'fs';
+import path from 'path';
 
-const client = new MercadoPagoConfig({ 
-  accessToken: 'APP_USR-262874679746832-073107-da4bdec70c57cb8f045cdb4dc6974eaf-1094025176' 
-});
+const dataFilePath = path.join(process.cwd(), 'data', 'orders.json');
 
 export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ message: 'ID de pagamento ausente' });
+    return res.status(400).json({ error: 'ID de pagamento não informado' });
   }
 
-  try {
-    const payment = new Payment(client);
-    const paymentInfo = await payment.get({ id });
+  const token = process.env.MERCADOPAGO_ACCESS_TOKEN || 'APP_USR-262874679746832-073107-da4bdec70c57cb8f045cdb4dc6974eaf-1094025176';
 
-    // Se o pagamento foi aprovado, atualiza o status na lista do Admin
-    if (paymentInfo.status === 'approved' && global.ordersList) {
-      const order = global.ordersList.find(o => String(o.id) === String(id));
-      if (order) {
-        order.status = 'approved';
+  try {
+    // Consulta o status real no Mercado Pago
+    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    const mpData = await mpRes.json();
+    const currentStatus = mpData.status || 'pending';
+
+    // Atualiza a lista em memória/local caso o status seja aprovado
+    if (fs.existsSync(dataFilePath)) {
+      try {
+        const fileContent = fs.readFileSync(dataFilePath, 'utf8');
+        let orders = JSON.parse(fileContent || '[]');
+        
+        let updated = false;
+        orders = orders.map(order => {
+          if (String(order.id) === String(id) || String(order.paymentId) === String(id)) {
+            order.status = currentStatus;
+            updated = true;
+          }
+          return order;
+        });
+
+        if (updated) {
+          fs.writeFileSync(dataFilePath, JSON.stringify(orders, null, 2), 'utf8');
+        }
+      } catch (err) {
+        console.error('Erro ao atualizar pedidos no JSON:', err);
       }
     }
 
-    return res.status(200).json({
-      status: paymentInfo.status
-    });
-  } catch (error) {
-    console.error('Erro na checagem de pagamento:', error);
-    return res.status(500).json({ message: 'Erro ao checar pagamento' });
+    return res.status(200).json({ status: currentStatus });
+
+  } catch (err) {
+    console.error('Erro na verificação de pagamento:', err);
+    return res.status(500).json({ error: 'Erro ao consultar status' });
   }
 }
