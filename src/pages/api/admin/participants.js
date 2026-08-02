@@ -1,70 +1,97 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../../../lib/prisma';
 
 export default async function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+
   if (req.method === 'GET') {
     try {
       const { search } = req.query;
 
-      // Filtro dinâmico por Nome, Telefone ou Número de Cota
-      let whereClause = {};
-      if (search && search.trim() !== '') {
-        const queryStr = search.trim();
-        whereClause = {
-          OR: [
-            { name: { contains: queryStr } },
-            { phone: { contains: queryStr } },
-            { tickets: { some: { number: { contains: queryStr } } } },
-          ],
-        };
+      if (!prisma || !prisma.order) {
+        return res.status(200).json({
+          success: true,
+          metrics: { totalParticipants: 0, totalTicketsSold: 0, totalTicketsPending: 0, totalRevenue: '0.00' },
+          participants: []
+        });
       }
 
-      const participants = await prisma.participant.findMany({
-        where: whereClause,
-        include: {
-          tickets: true,
-        },
-        orderBy: { createdAt: 'desc' },
+      // Busca todas as ordens de compra
+      const allOrders = await prisma.order.findMany({
+        orderBy: { createdAt: 'desc' }
       });
 
-      // Cálculo das Métricas Gerais
-      const allTickets = await prisma.ticket.findMany();
-      const paidTickets = allTickets.filter(t => t.status === 'PAID');
-      const pendingTickets = allTickets.filter(t => t.status === 'PENDING');
-      
-      const pricePerCota = 0.06;
-      const totalRevenue = paidTickets.length * pricePerCota;
+      // Filtro dinâmico (Nome, Telefone ou Número da Cota)
+      let filteredOrders = allOrders;
+      if (search && search.trim() !== '') {
+        const queryStr = search.trim().toLowerCase();
+        const cleanQuery = queryStr.replace(/\D/g, '');
+
+        filteredOrders = allOrders.filter(order => {
+          const nameMatch = (order.name || '').toLowerCase().includes(queryStr);
+          const phoneMatch = cleanQuery ? String(order.phone || '').includes(cleanQuery) : false;
+          const numberMatch = (order.numbers || []).some(num => String(num).includes(queryStr));
+          return nameMatch || phoneMatch || numberMatch;
+        });
+      }
+
+      // Mapeia ordens para o formato exigido pelo Painel Admin
+      const participants = filteredOrders.map(order => {
+        const isPaid = order.status === 'approved' || order.status === 'PAID';
+        return {
+          id: order.id,
+          name: order.name,
+          phone: order.phone,
+          totalPrice: order.totalPrice,
+          status: isPaid ? 'PAID' : 'PENDING',
+          createdAt: order.createdAt,
+          ticketsCount: order.ticketsCount || (order.numbers || []).length,
+          tickets: (order.numbers || []).map(num => ({
+            id: `${order.id}-${num}`,
+            number: num,
+            status: isPaid ? 'PAID' : 'PENDING'
+          }))
+        };
+      });
+
+      // Cálculo das Métricas
+      const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'PAID');
+      const pendingOrders = allOrders.filter(o => o.status === 'pending' || o.status === 'PENDING');
+
+      const totalTicketsSold = approvedOrders.reduce((acc, o) => acc + Number(o.ticketsCount || (o.numbers || []).length), 0);
+      const totalTicketsPending = pendingOrders.reduce((acc, o) => acc + Number(o.ticketsCount || (o.numbers || []).length), 0);
+      const totalRevenue = approvedOrders.reduce((acc, o) => acc + Number(o.totalPrice || 0), 0);
 
       return res.status(200).json({
         success: true,
         metrics: {
-          totalParticipants: participants.length,
-          totalTicketsSold: paidTickets.length,
-          totalTicketsPending: pendingTickets.length,
+          totalParticipants: allOrders.length,
+          totalTicketsSold,
+          totalTicketsPending,
           totalRevenue: totalRevenue.toFixed(2),
         },
         participants,
+        orders: filteredOrders
       });
+
     } catch (error) {
       console.error("Erro na API Admin:", error);
       return res.status(500).json({ success: false, message: 'Erro ao carregar participantes.' });
     }
   }
 
-  // Rota para Aprovação Manual de Pagamento (PUT)
+  // Rota para Aprovação Manual no Admin (PUT)
   if (req.method === 'PUT') {
     try {
-      const { participantId } = req.body;
+      const { participantId, orderId } = req.body;
+      const targetId = String(participantId || orderId || '');
 
-      if (!participantId) {
-        return res.status(400).json({ success: false, message: 'ID do participante é obrigatório.' });
+      if (!targetId) {
+        return res.status(400).json({ success: false, message: 'ID é obrigatório.' });
       }
 
-      // Atualiza o status de todas as cotas desse participante para "PAID"
-      await prisma.ticket.updateMany({
-        where: { participantId },
-        data: { status: 'PAID' },
+      await prisma.order.updateMany({
+        where: { id: targetId },
+        data: { status: 'approved' },
       });
 
       return res.status(200).json({ success: true, message: 'Pagamento aprovado com sucesso!' });

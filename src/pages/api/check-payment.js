@@ -8,9 +8,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN || 'APP_USR-262874679746832-073107-da4bdec70c57cb8f045cdb4dc6974eaf-1094025176';
+    const token = process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN;
 
-    // 1. Consulta o status direto no Mercado Pago
     const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -24,7 +23,6 @@ export default async function handler(req, res) {
     const mpData = await mpRes.json();
     const currentStatus = mpData.status; // 'approved', 'pending', etc.
 
-    // 2. Se foi aprovado, atualiza no banco de dados
     if (currentStatus === 'approved') {
       try {
         if (prisma && prisma.order) {

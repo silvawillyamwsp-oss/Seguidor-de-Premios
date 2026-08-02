@@ -1,7 +1,6 @@
 import prisma from '../../lib/prisma';
 
 export default async function handler(req, res) {
-  // Garante que a resposta sempre será enviada como JSON
   res.setHeader('Content-Type', 'application/json');
 
   if (req.method !== 'POST') {
@@ -21,23 +20,20 @@ export default async function handler(req, res) {
     const unitPrice = Number(process.env.NEXT_PUBLIC_TICKET_PRICE) || 0.06;
     let totalPrice = parseFloat((totalQty * unitPrice).toFixed(2));
 
-    // Garante valor mínimo da transação exigido pelo Mercado Pago Pix (ex: R$ 0.50)
     if (totalPrice < 0.50) {
       totalPrice = 0.50;
     }
 
-    // Gera as cotas únicas
     const generatedNumbers = [];
     for (let i = 0; i < totalQty; i++) {
       generatedNumbers.push(String(Math.floor(100000 + Math.random() * 900000)));
     }
 
-    const token = process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN || 'APP_USR-262874679746832-073107-da4bdec70c57cb8f045cdb4dc6974eaf-1094025176';
+    const token = process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN;
 
     const firstName = name.trim().split(' ')[0];
     const lastName = name.trim().split(' ').slice(1).join(' ') || 'Cliente';
 
-    // 1. Chamada ao Mercado Pago
     const mpResponse = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
       headers: {
@@ -76,7 +72,6 @@ export default async function handler(req, res) {
     const qrCodeBase64 = transactionData.qr_code_base64;
     const paymentId = String(mpData.id);
 
-    // 2. Salva no banco de dados (com proteção contra erros de schema)
     let newOrder = null;
     try {
       if (prisma && prisma.order) {
@@ -93,7 +88,7 @@ export default async function handler(req, res) {
         });
       }
     } catch (dbError) {
-      console.warn('Alerta banco de dados:', dbError.message);
+      console.warn('Alerta banco de dados ao criar ordem:', dbError.message);
     }
 
     return res.status(200).json({
