@@ -61,6 +61,7 @@ export default function SorteioPage() {
   const [pedidosPagos, setPedidosPagos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState('Buscando pedidos...');
+  const [contagem, setContagem] = useState(null); // Estado para a contagem regressiva
 
   useEffect(() => {
     async function carregarPedidos() {
@@ -93,8 +94,22 @@ export default function SorteioPage() {
       return alert('Nenhum pedido foi encontrado no banco de dados.');
     }
 
-    const ganhador = encontrarGanhadorPago(numeroFederal, pedidosPagos);
-    setResultado(ganhador);
+    // Limpa resultado anterior e inicia contagem no 3
+    setResultado(null);
+    setContagem(3);
+
+    const timer = setInterval(() => {
+      setContagem((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          // Executa a busca assim que a contagem zerar
+          const ganhador = encontrarGanhadorPago(numeroFederal, pedidosPagos);
+          setResultado(ganhador);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   return (
@@ -118,6 +133,7 @@ export default function SorteioPage() {
             placeholder="Ex: 932415" 
             value={numeroFederal} 
             onChange={(e) => setNumeroFederal(e.target.value)}
+            disabled={contagem !== null}
             style={{
               width: '100%',
               padding: '12px',
@@ -133,22 +149,33 @@ export default function SorteioPage() {
 
         <button 
           onClick={handleCalcularGanhador}
-          disabled={loading}
+          disabled={loading || contagem !== null}
           style={{
             width: '100%',
-            background: loading ? '#475569' : '#22c55e',
+            background: (loading || contagem !== null) ? '#475569' : '#22c55e',
             color: '#fff',
             border: 'none',
             padding: '14px',
             borderRadius: '8px',
             fontSize: '1rem',
             fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer'
+            cursor: (loading || contagem !== null) ? 'not-allowed' : 'pointer'
           }}
         >
-          🔍 ENCONTRAR GANHADOR PAGO
+          {contagem !== null ? `⏳ APURANDO EM ${contagem}...` : '🔍 ENCONTRAR GANHADOR PAGO'}
         </button>
 
+        {/* Efeito Visual da Contagem Regressiva */}
+        {contagem !== null && (
+          <div style={{ textAlign: 'center', margin: '30px 0' }}>
+            <span style={{ fontSize: '4rem', fontWeight: 'bold', color: '#f59e0b', animation: 'pulse 1s infinite' }}>
+              {contagem}
+            </span>
+            <p style={{ color: '#94a3b8', marginTop: '8px' }}>Procurando no banco de dados...</p>
+          </div>
+        )}
+
+        {/* Resultado Final */}
         {resultado && (
           <div style={{ marginTop: '24px', padding: '16px', background: '#1e293b', border: '1px solid #22c55e', borderRadius: '12px' }}>
             {resultado.erro ? (
