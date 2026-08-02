@@ -4,11 +4,11 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
   let cotasPlanas = [];
 
   ordens.forEach(ordem => {
-    // Pega o nome e o telefone do schema
+    // Extrai nome e telefone
     const nomeCliente = ordem.name || 'Cliente';
     const telefoneCliente = ordem.phone || 'Não informado';
 
-    // O Prisma retorna 'numbers' como uma Array de Strings ex: ["198221", "932415"]
+    // A array 'numbers' que vem do Prisma
     let listaNumeros = ordem.numbers || [];
 
     if (typeof listaNumeros === 'string') {
@@ -17,7 +17,6 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
 
     if (Array.isArray(listaNumeros)) {
       listaNumeros.forEach(num => {
-        // Remove aspas, vírgulas ou caracteres não numéricos
         const numeroLimpo = String(num).replace(/[^0-9]/g, '');
         
         if (numeroLimpo.length > 0) {
@@ -31,7 +30,7 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
     }
   });
 
-  // Ordena do menor para o maior
+  // Ordena as cotas da menor para a maior
   const cotasOrdenadas = cotasPlanas
     .map(c => c.numero)
     .sort((a, b) => a - b);
@@ -73,24 +72,24 @@ export default function WinnerSearch() {
       try {
         setLoading(true);
 
-        // Chama a sua API de admin que conecta ao Prisma
+        // Busca direto da API do seu backend
         const res = await fetch('/api/admin/orders');
         const data = await res.json();
 
-        // Extrai a lista real do campo 'participants' retornado pelo seu orders.js
+        // Extrai a lista do campo 'participants' retornado pelo seu orders.js
         const todosPedidos = data.participants || data.orders || (Array.isArray(data) ? data : []);
 
-        // Filtra estritamente os pedidos aprovados
+        // Filtra apenas os aprovados/pagos
         const aprovados = todosPedidos.filter(order => {
           const st = String(order.status).toLowerCase();
           return st === 'approved' || st === 'paid' || st === 'pago';
         });
 
         setPedidosPagos(aprovados);
-        setStatusMsg(`✅ ${aprovados.length} pedido(s) APROVADO(S) do Prisma!`);
+        setStatusMsg(`✅ ${aprovados.length} pedido(s) APROVADO(S) carregado(s)!`);
       } catch (err) {
         console.error("Erro ao carregar pedidos via API:", err);
-        setStatusMsg("❌ Erro ao conectar com a API local do Prisma.");
+        setStatusMsg("❌ Erro ao conectar com a API interna.");
       } finally {
         setLoading(false);
       }
@@ -103,7 +102,7 @@ export default function WinnerSearch() {
     if (!numeroFederal) return alert('Digite o número sorteado na Loteria Federal!');
     
     if (pedidosPagos.length === 0) {
-      return alert('Nenhum pedido APROVADO foi encontrado no banco de dados.');
+      return alert('Nenhum pedido APROVADO foi retornado pelo banco.');
     }
 
     const ganhador = encontrarGanhadorPago(numeroFederal, pedidosPagos);
@@ -119,7 +118,7 @@ export default function WinnerSearch() {
         </h1>
 
         <p style={{ textAlign: 'center', fontSize: '0.85rem', color: loading ? '#f59e0b' : '#22c55e', marginBottom: '20px' }}>
-          {loading ? "🔄 Lendo banco de dados via Prisma..." : statusMsg}
+          {loading ? "🔄 Lendo dados via Prisma..." : statusMsg}
         </p>
 
         <div style={{ marginBottom: '16px' }}>
