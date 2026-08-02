@@ -66,38 +66,18 @@ export default function SorteioPage() {
     async function carregarPedidos() {
       try {
         setLoading(true);
+        const res = await fetch('/api/sorteio/pedidos');
+        const json = await res.json();
 
-        // Tenta buscar na rota publica ou de participantes se a de admin falhar
-        let res = await fetch('/api/admin/orders');
-        
-        if (!res.ok) {
-          // Tenta rota alternativa de participantes/pedidos
-          res = await fetch('/api/orders');
-        }
-
-        const data = await res.json();
-
-        let todosPedidos = [];
-        if (Array.isArray(data)) {
-          todosPedidos = data;
-        } else if (Array.isArray(data.participants)) {
-          todosPedidos = data.participants;
-        } else if (Array.isArray(data.orders)) {
-          todosPedidos = data.orders;
-        } else if (Array.isArray(data.data)) {
-          todosPedidos = data.data;
-        }
-
-        setPedidosPagos(todosPedidos);
-        
-        if (todosPedidos.length > 0) {
-          setStatusMsg(`✅ ${todosPedidos.length} pedido(s) carregado(s)!`);
+        if (json.success && Array.isArray(json.data)) {
+          setPedidosPagos(json.data);
+          setStatusMsg(`✅ ${json.data.length} pedido(s) carregado(s) com sucesso!`);
         } else {
-          setStatusMsg(`⚠️ Nenhum pedido retornado. (Acesse como admin primeiro)`);
+          setStatusMsg(`⚠️ Erro na resposta: ${json.message || 'Dados inválidos'}`);
         }
       } catch (err) {
         console.error("Erro ao carregar pedidos:", err);
-        setStatusMsg("❌ Erro ao conectar com a API de pedidos.");
+        setStatusMsg("❌ Erro ao conectar com o banco de dados.");
       } finally {
         setLoading(false);
       }
@@ -110,7 +90,7 @@ export default function SorteioPage() {
     if (!numeroFederal) return alert('Digite o número sorteado na Loteria Federal!');
     
     if (pedidosPagos.length === 0) {
-      return alert('Nenhum pedido foi retornado pela API. Certifique-se de estar logado como admin no navegador.');
+      return alert('Nenhum pedido foi encontrado no banco de dados.');
     }
 
     const ganhador = encontrarGanhadorPago(numeroFederal, pedidosPagos);
@@ -126,7 +106,7 @@ export default function SorteioPage() {
         </h1>
 
         <p style={{ textAlign: 'center', fontSize: '0.85rem', color: loading ? '#f59e0b' : '#22c55e', marginBottom: '20px' }}>
-          {loading ? "🔄 Lendo dados dos pedidos..." : statusMsg}
+          {loading ? "🔄 Conectando ao banco..." : statusMsg}
         </p>
 
         <div style={{ marginBottom: '16px' }}>
