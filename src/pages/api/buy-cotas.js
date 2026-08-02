@@ -16,16 +16,29 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: 'Nome e telefone válidos são obrigatórios.' });
     }
 
+    // Quantidade comprada / paga pelo cliente
     const totalQty = Number(qty || tickets_count || quantity || 1);
+    
+    // Regra das Cotas Bônus: A cada 100 cotas pagas, ganha +25 cotas grátis
+    let bonusQty = 0;
+    if (totalQty >= 100) {
+      bonusQty = Math.floor(totalQty / 100) * 25;
+    }
+
+    // Total final de cotas que o cliente vai receber (Compradas + Bônus)
+    const finalTicketsCount = totalQty + bonusQty;
+
     const unitPrice = Number(process.env.NEXT_PUBLIC_TICKET_PRICE) || 0.06;
+    // O preço total do Pix continua cobrando APENAS as cotas pagas (totalQty)
     let totalPrice = parseFloat((totalQty * unitPrice).toFixed(2));
 
     if (totalPrice < 0.50) {
       totalPrice = 0.50;
     }
 
+    // Gera os números para todas as cotas (Compradas + Bônus)
     const generatedNumbers = [];
-    for (let i = 0; i < totalQty; i++) {
+    for (let i = 0; i < finalTicketsCount; i++) {
       generatedNumbers.push(String(Math.floor(100000 + Math.random() * 900000)));
     }
 
@@ -43,7 +56,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         transaction_amount: totalPrice,
-        description: `Cotas Seguidor de Prêmios - ${totalQty} cotas`,
+        description: `Cotas Seguidor de Prêmios - ${totalQty} cotas${bonusQty > 0 ? ` (+${bonusQty} bônus grátis)` : ''}`,
         payment_method_id: 'pix',
         payer: {
           email: 'contato@seguidordepremios.com.br',
@@ -80,7 +93,7 @@ export default async function handler(req, res) {
             id: paymentId,
             name: name.trim(),
             phone: cleanPhone,
-            ticketsCount: totalQty,
+            ticketsCount: finalTicketsCount, // Salva o total de cotas com o bônus incluso
             totalPrice: totalPrice,
             numbers: generatedNumbers,
             status: 'pending'
