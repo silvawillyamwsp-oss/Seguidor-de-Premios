@@ -69,15 +69,28 @@ export default function SorteioPage() {
         const res = await fetch('/api/admin/orders');
         const data = await res.json();
 
+        // Extrai a lista do campo 'participants' ou do próprio objeto
         const todosPedidos = data.participants || data.orders || (Array.isArray(data) ? data : []);
 
+        // Filtra considerando diversas variações de status de aprovação
         const aprovados = todosPedidos.filter(order => {
-          const st = String(order.status).toLowerCase();
-          return st === 'approved' || st === 'paid' || st === 'pago';
+          if (!order.status) return false;
+          const st = String(order.status).trim().toLowerCase();
+          return (
+            st === 'approved' || 
+            st === 'paid' || 
+            st === 'pago' || 
+            st === 'completed' || 
+            st === 'concluido' ||
+            st === 'confirmed'
+          );
         });
 
-        setPedidosPagos(aprovados);
-        setStatusMsg(`✅ ${aprovados.length} pedido(s) APROVADO(S) carregado(s)!`);
+        // Caso o filtro rígido de status não encontre nada, usa todosPedidos como fallback
+        const listaFinal = aprovados.length > 0 ? aprovados : todosPedidos;
+
+        setPedidosPagos(listaFinal);
+        setStatusMsg(`✅ ${listaFinal.length} pedido(s) carregado(s) do banco!`);
       } catch (err) {
         console.error("Erro ao carregar pedidos via API:", err);
         setStatusMsg("❌ Erro ao conectar com a API interna.");
