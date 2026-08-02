@@ -4,9 +4,9 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
   let cotasPlanas = [];
 
   ordens.forEach(ordem => {
-    const nomeCliente = ordem.name || 'Cliente';
-    const telefoneCliente = ordem.phone || 'Não informado';
-    let listaNumeros = ordem.numbers || [];
+    const nomeCliente = ordem.name || ordem.clientName || 'Cliente';
+    const telefoneCliente = ordem.phone || ordem.clientPhone || 'Não informado';
+    let listaNumeros = ordem.numbers || ordem.cotas || [];
 
     if (typeof listaNumeros === 'string') {
       listaNumeros = listaNumeros.split(',');
@@ -61,6 +61,7 @@ export default function SorteioPage() {
   const [pedidosPagos, setPedidosPagos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState('Buscando pedidos...');
+  const [rawApiResponse, setRawApiResponse] = useState(null);
 
   useEffect(() => {
     async function carregarPedidos() {
@@ -68,29 +69,22 @@ export default function SorteioPage() {
         setLoading(true);
         const res = await fetch('/api/admin/orders');
         const data = await res.json();
+        setRawApiResponse(data);
 
-        // Extrai a lista do campo 'participants' ou do próprio objeto
-        const todosPedidos = data.participants || data.orders || (Array.isArray(data) ? data : []);
+        // Tenta encontrar a lista em qualquer chave possível do JSON
+        let todosPedidos = [];
+        if (Array.isArray(data)) {
+          todosPedidos = data;
+        } else if (Array.isArray(data.participants)) {
+          todosPedidos = data.participants;
+        } else if (Array.isArray(data.orders)) {
+          todosPedidos = data.orders;
+        } else if (Array.isArray(data.data)) {
+          todosPedidos = data.data;
+        }
 
-        // Filtra considerando diversas variações de status de aprovação
-        const aprovados = todosPedidos.filter(order => {
-          if (!order.status) return false;
-          const st = String(order.status).trim().toLowerCase();
-          return (
-            st === 'approved' || 
-            st === 'paid' || 
-            st === 'pago' || 
-            st === 'completed' || 
-            st === 'concluido' ||
-            st === 'confirmed'
-          );
-        });
-
-        // Caso o filtro rígido de status não encontre nada, usa todosPedidos como fallback
-        const listaFinal = aprovados.length > 0 ? aprovados : todosPedidos;
-
-        setPedidosPagos(listaFinal);
-        setStatusMsg(`✅ ${listaFinal.length} pedido(s) carregado(s) do banco!`);
+        setPedidosPagos(todosPedidos);
+        setStatusMsg(`✅ ${todosPedidos.length} pedido(s) encontrado(s) na API!`);
       } catch (err) {
         console.error("Erro ao carregar pedidos via API:", err);
         setStatusMsg("❌ Erro ao conectar com a API interna.");
@@ -102,11 +96,15 @@ export default function SorteioPage() {
     carregarPedidos();
   }, []);
 
+  const handleTestApi = () => {
+    alert("Resposta da API:\n" + JSON.stringify(rawApiResponse, null, 2));
+  };
+
   const handleCalcularGanhador = () => {
     if (!numeroFederal) return alert('Digite o número sorteado na Loteria Federal!');
     
     if (pedidosPagos.length === 0) {
-      return alert('Nenhum pedido APROVADO foi retornado pelo banco.');
+      return alert('Nenhum pedido foi retornado pela API.');
     }
 
     const ganhador = encontrarGanhadorPago(numeroFederal, pedidosPagos);
@@ -121,9 +119,28 @@ export default function SorteioPage() {
           🎲 Painel de Apuração do Sorteio
         </h1>
 
-        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: loading ? '#f59e0b' : '#22c55e', marginBottom: '20px' }}>
-          {loading ? "🔄 Lendo dados via Prisma..." : statusMsg}
+        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: loading ? '#f59e0b' : '#22c55e', marginBottom: '12px' }}>
+          {loading ? "🔄 Lendo dados via API..." : statusMsg}
         </p>
+
+        {rawApiResponse && (
+          <button 
+            onClick={handleTestApi}
+            style={{
+              width: '100%',
+              background: '#3b82f6',
+              color: '#fff',
+              border: 'none',
+              padding: '8px',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              marginBottom: '16px'
+            }}
+          >
+            🧪 TESTAR RESPOSTA DA API (DIAGNÓSTICO)
+          </button>
+        )}
 
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>
