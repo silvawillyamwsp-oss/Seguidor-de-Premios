@@ -12,7 +12,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const res = await fetch('/api/admin/orders');
+        const res = await fetch('/api/admin/dashboard');
         if (res.ok) {
           const result = await res.json();
           if (result.success) {
