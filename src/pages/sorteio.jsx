@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { prisma } from '../../lib/prisma'; // Se o seu prisma estiver em /lib/prisma
+import { prisma } from '@/lib/prisma';
 
 function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
   let cotasPlanas = [];
@@ -153,19 +153,16 @@ export default function SorteioPage({ pedidosIniciais }) {
   );
 }
 
-// Busca os pedidos direto no banco via Prisma ANTES de carregar a página
 export async function getServerSideProps() {
   try {
     let pedidos = [];
     
-    // Busca na tabela de participantes/pedidos do Prisma
-    if (prisma.participant) {
+    if (prisma && prisma.participant) {
       pedidos = await prisma.participant.findMany();
-    } else if (prisma.order) {
+    } else if (prisma && prisma.order) {
       pedidos = await prisma.order.findMany();
     }
 
-    // Converte datas para string para evitar erros de serialização do Next.js
     const pedidosFormatados = JSON.parse(JSON.stringify(pedidos));
 
     return {
