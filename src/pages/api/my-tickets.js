@@ -1,20 +1,21 @@
 import prisma from '../../lib/prisma';
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ success: false, message: 'Método não permitido' });
-  }
+  res.setHeader('Content-Type', 'application/json');
 
-  const { phone } = req.query;
-  const cleanPhone = String(phone || '').replace(/\D/g, '');
+  const phoneParam = req.method === 'GET' ? req.query.phone : req.body?.phone;
+  const cleanPhone = String(phoneParam || '').replace(/\D/g, '');
 
-  if (!cleanPhone || cleanPhone.length < 8) {
-    return res.status(400).json({ success: false, message: 'Informe um telefone válido.' });
+  if (!cleanPhone || cleanPhone.length < 10) {
+    return res.status(400).json({ success: false, message: 'Digite um telefone válido com DDD.' });
   }
 
   try {
-    // Busca todas as ordens vinculadas ao número pesquisado
-    const userOrders = await prisma.order.findMany({
+    if (!prisma || !prisma.order) {
+      return res.status(200).json({ success: true, orders: [] });
+    }
+
+    const orders = await prisma.order.findMany({
       where: {
         phone: {
           contains: cleanPhone
@@ -25,19 +26,16 @@ export default async function handler(req, res) {
       }
     });
 
-    // Extrai e junta todas as cotas encontradas
-    const allTickets = userOrders.reduce((acc, order) => {
-      return [...acc, ...(order.numbers || [])];
-    }, []);
-
     return res.status(200).json({
       success: true,
-      tickets: allTickets,
-      orders: userOrders
+      orders: orders || []
     });
 
   } catch (error) {
-    console.error('Erro ao buscar cotas:', error);
-    return res.status(500).json({ success: false, message: 'Erro interno ao consultar cotas.' });
+    console.error('Erro ao buscar números:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao consultar cotas. Tente novamente em instantes.'
+    });
   }
 }
