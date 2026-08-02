@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { prisma } from '../../lib/prisma'; // Se o seu prisma estiver em /lib/prisma
 
 function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
   let cotasPlanas = [];
@@ -31,7 +32,7 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
     .sort((a, b) => a - b);
 
   if (cotasOrdenadas.length === 0) {
-    return { erro: "Nenhuma cota paga/aprovada foi encontrada nos pedidos!" };
+    return { erro: "Nenhuma cota foi encontrada nos pedidos!" };
   }
 
   const sorteado = Number(numeroSorteadoFederal);
@@ -55,56 +56,16 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
   return { cota: proximaAbaixo, cliente: comprador, tipo: "🔻 Aproximação para Baixo (Antecessora)" };
 }
 
-export default function SorteioPage() {
+export default function SorteioPage({ pedidosIniciais }) {
   const [numeroFederal, setNumeroFederal] = useState('');
   const [resultado, setResultado] = useState(null);
-  const [pedidosPagos, setPedidosPagos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [statusMsg, setStatusMsg] = useState('Buscando pedidos...');
-  const [rawApiResponse, setRawApiResponse] = useState(null);
-
-  useEffect(() => {
-    async function carregarPedidos() {
-      try {
-        setLoading(true);
-        const res = await fetch('/api/admin/orders');
-        const data = await res.json();
-        setRawApiResponse(data);
-
-        // Tenta encontrar a lista em qualquer chave possível do JSON
-        let todosPedidos = [];
-        if (Array.isArray(data)) {
-          todosPedidos = data;
-        } else if (Array.isArray(data.participants)) {
-          todosPedidos = data.participants;
-        } else if (Array.isArray(data.orders)) {
-          todosPedidos = data.orders;
-        } else if (Array.isArray(data.data)) {
-          todosPedidos = data.data;
-        }
-
-        setPedidosPagos(todosPedidos);
-        setStatusMsg(`✅ ${todosPedidos.length} pedido(s) encontrado(s) na API!`);
-      } catch (err) {
-        console.error("Erro ao carregar pedidos via API:", err);
-        setStatusMsg("❌ Erro ao conectar com a API interna.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    carregarPedidos();
-  }, []);
-
-  const handleTestApi = () => {
-    alert("Resposta da API:\n" + JSON.stringify(rawApiResponse, null, 2));
-  };
+  const [pedidosPagos] = useState(pedidosIniciais || []);
 
   const handleCalcularGanhador = () => {
     if (!numeroFederal) return alert('Digite o número sorteado na Loteria Federal!');
     
     if (pedidosPagos.length === 0) {
-      return alert('Nenhum pedido foi retornado pela API.');
+      return alert('Nenhum pedido foi encontrado no banco de dados.');
     }
 
     const ganhador = encontrarGanhadorPago(numeroFederal, pedidosPagos);
@@ -119,28 +80,9 @@ export default function SorteioPage() {
           🎲 Painel de Apuração do Sorteio
         </h1>
 
-        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: loading ? '#f59e0b' : '#22c55e', marginBottom: '12px' }}>
-          {loading ? "🔄 Lendo dados via API..." : statusMsg}
+        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#22c55e', marginBottom: '20px' }}>
+          ✅ {pedidosPagos.length} pedido(s) do banco prontos para apuração!
         </p>
-
-        {rawApiResponse && (
-          <button 
-            onClick={handleTestApi}
-            style={{
-              width: '100%',
-              background: '#3b82f6',
-              color: '#fff',
-              border: 'none',
-              padding: '8px',
-              borderRadius: '6px',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              marginBottom: '16px'
-            }}
-          >
-            🧪 TESTAR RESPOSTA DA API (DIAGNÓSTICO)
-          </button>
-        )}
 
         <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>
@@ -166,17 +108,16 @@ export default function SorteioPage() {
 
         <button 
           onClick={handleCalcularGanhador}
-          disabled={loading}
           style={{
             width: '100%',
-            background: loading ? '#475569' : '#22c55e',
+            background: '#22c55e',
             color: '#fff',
             border: 'none',
             padding: '14px',
             borderRadius: '8px',
             fontSize: '1rem',
             fontWeight: 'bold',
-            cursor: loading ? 'not-allowed' : 'pointer'
+            cursor: 'pointer'
           }}
         >
           🔍 ENCONTRAR GANHADOR PAGO
@@ -210,4 +151,34 @@ export default function SorteioPage() {
       </div>
     </div>
   );
+}
+
+// Busca os pedidos direto no banco via Prisma ANTES de carregar a página
+export async function getServerSideProps() {
+  try {
+    let pedidos = [];
+    
+    // Busca na tabela de participantes/pedidos do Prisma
+    if (prisma.participant) {
+      pedidos = await prisma.participant.findMany();
+    } else if (prisma.order) {
+      pedidos = await prisma.order.findMany();
+    }
+
+    // Converte datas para string para evitar erros de serialização do Next.js
+    const pedidosFormatados = JSON.parse(JSON.stringify(pedidos));
+
+    return {
+      props: {
+        pedidosIniciais: pedidosFormatados,
+      },
+    };
+  } catch (error) {
+    console.error("Erro no getServerSideProps:", error);
+    return {
+      props: {
+        pedidosIniciais: [],
+      },
+    };
+  }
 }
