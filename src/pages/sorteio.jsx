@@ -1,27 +1,20 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
 
 function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
   let cotasPlanas = [];
 
   ordens.forEach(ordem => {
-    // 1. Extrai o nome e telefone independente de como está na tabela
-    const nomeCliente = ordem.name || ordem.customerName || ordem.customer_name || ordem.comprador || 'Cliente';
-    const telefoneCliente = ordem.phone || ordem.customerPhone || ordem.customer_phone || ordem.telefone || 'Não informado';
+    const nomeCliente = ordem.name || 'Cliente';
+    const telefoneCliente = ordem.phone || 'Não informado';
+    let listaNumeros = ordem.numbers || [];
 
-    // 2. Extrai os números (seja Array, Objeto JSON ou String com aspas/vírgulas)
-    let listaNumeros = ordem.numbers || ordem.cotas || ordem.numbers_list || [];
-
-    // Se for uma string (ex: '"198221", "464160", "932415"'), transforma em lista
     if (typeof listaNumeros === 'string') {
       listaNumeros = listaNumeros.split(',');
     }
 
     if (Array.isArray(listaNumeros)) {
       listaNumeros.forEach(num => {
-        // Limpa aspas, apóstrofos, colchetes e extrai apenas os números
         const numeroLimpo = String(num).replace(/[^0-9]/g, '');
-        
         if (numeroLimpo.length > 0) {
           cotasPlanas.push({ 
             numero: Number(numeroLimpo), 
@@ -33,16 +26,12 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
     }
   });
 
-  console.log("Total de cotas processadas e limpas:", cotasPlanas.length);
-  console.log("Exemplo de cotas carregadas:", cotasPlanas.slice(0, 5));
-
-  // Ordena todas as cotas limpas da menor para a maior
   const cotasOrdenadas = cotasPlanas
     .map(c => c.numero)
     .sort((a, b) => a - b);
 
   if (cotasOrdenadas.length === 0) {
-    return { erro: "Nenhuma cota PAGA (approved) foi encontrada/parseada do banco!" };
+    return { erro: "Nenhuma cota paga/aprovada foi encontrada nos pedidos!" };
   }
 
   const sorteado = Number(numeroSorteadoFederal);
@@ -53,61 +42,58 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
     return { cota: sorteado, cliente: comprador, tipo: "🏆 Direto (1º Prêmio da Federal)" };
   }
 
-  // 2. Aproximação para CIMA (Sucessora)
+  // 2. Aproximação para CIMA
   const proximaAcima = cotasOrdenadas.find(num => num > sorteado);
   if (proximaAcima !== undefined) {
     const comprador = cotasPlanas.find(c => c.numero === proximaAcima);
     return { cota: proximaAcima, cliente: comprador, tipo: "🔺 Aproximação para Cima (Sucessora)" };
   }
 
-  // 3. Aproximação para BAIXO (Antecessora)
+  // 3. Aproximação para BAIXO
   const proximaAbaixo = [...cotasOrdenadas].reverse().find(num => num < sorteado);
   const comprador = cotasPlanas.find(c => c.numero === proximaAbaixo);
   return { cota: proximaAbaixo, cliente: comprador, tipo: "🔻 Aproximação para Baixo (Antecessora)" };
 }
 
-export default function PainelSorteio() {
+export default function SorteioPage() {
   const [numeroFederal, setNumeroFederal] = useState('');
   const [resultado, setResultado] = useState(null);
   const [pedidosPagos, setPedidosPagos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [statusMsg, setStatusMsg] = useState('Buscando dados...');
+  const [statusMsg, setStatusMsg] = useState('Buscando pedidos...');
 
   useEffect(() => {
-    async function carregarCotasSupabase() {
+    async function carregarPedidos() {
       try {
         setLoading(true);
+        const res = await fetch('/api/admin/orders');
+        const data = await res.json();
 
-        // Busca registros com status 'approved'
-        const { data, error } = await supabase
-          .from('Order') 
-          .select('*')
-          .eq('status', 'approved');
+        const todosPedidos = data.participants || data.orders || (Array.isArray(data) ? data : []);
 
-        if (error) {
-          console.error("Erro no Supabase:", error);
-          setStatusMsg("❌ Erro ao conectar no banco: " + error.message);
-        } else if (data) {
-          console.log("Pedidos brutos recebidos do Supabase:", data);
-          setPedidosPagos(data);
-          setStatusMsg(`✅ ${data.length} pedido(s) 'approved' carregado(s)!`);
-        }
+        const aprovados = todosPedidos.filter(order => {
+          const st = String(order.status).toLowerCase();
+          return st === 'approved' || st === 'paid' || st === 'pago';
+        });
+
+        setPedidosPagos(aprovados);
+        setStatusMsg(`✅ ${aprovados.length} pedido(s) APROVADO(S) carregado(s)!`);
       } catch (err) {
-        console.error("Erro inesperado:", err);
-        setStatusMsg("❌ Erro de conexão/código.");
+        console.error("Erro ao carregar pedidos via API:", err);
+        setStatusMsg("❌ Erro ao conectar com a API interna.");
       } finally {
         setLoading(false);
       }
     }
 
-    carregarCotasSupabase();
+    carregarPedidos();
   }, []);
 
   const handleCalcularGanhador = () => {
     if (!numeroFederal) return alert('Digite o número sorteado na Loteria Federal!');
     
     if (pedidosPagos.length === 0) {
-      return alert('Nenhum pedido pago foi carregado do Supabase. Verifique a conexão com o banco.');
+      return alert('Nenhum pedido APROVADO foi retornado pelo banco.');
     }
 
     const ganhador = encontrarGanhadorPago(numeroFederal, pedidosPagos);
@@ -123,7 +109,7 @@ export default function PainelSorteio() {
         </h1>
 
         <p style={{ textAlign: 'center', fontSize: '0.85rem', color: loading ? '#f59e0b' : '#22c55e', marginBottom: '20px' }}>
-          {loading ? "🔄 Lendo dados do Supabase..." : statusMsg}
+          {loading ? "🔄 Lendo dados via Prisma..." : statusMsg}
         </p>
 
         <div style={{ marginBottom: '16px' }}>
