@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { prisma } from '@/lib/prisma';
+import { useState, useEffect } from 'react';
 
 function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
   let cotasPlanas = [];
@@ -56,16 +55,62 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
   return { cota: proximaAbaixo, cliente: comprador, tipo: "🔻 Aproximação para Baixo (Antecessora)" };
 }
 
-export default function SorteioPage({ pedidosIniciais }) {
+export default function SorteioPage() {
   const [numeroFederal, setNumeroFederal] = useState('');
   const [resultado, setResultado] = useState(null);
-  const [pedidosPagos] = useState(pedidosIniciais || []);
+  const [pedidosPagos, setPedidosPagos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusMsg, setStatusMsg] = useState('Buscando pedidos...');
+
+  useEffect(() => {
+    async function carregarPedidos() {
+      try {
+        setLoading(true);
+
+        // Tenta buscar na rota publica ou de participantes se a de admin falhar
+        let res = await fetch('/api/admin/orders');
+        
+        if (!res.ok) {
+          // Tenta rota alternativa de participantes/pedidos
+          res = await fetch('/api/orders');
+        }
+
+        const data = await res.json();
+
+        let todosPedidos = [];
+        if (Array.isArray(data)) {
+          todosPedidos = data;
+        } else if (Array.isArray(data.participants)) {
+          todosPedidos = data.participants;
+        } else if (Array.isArray(data.orders)) {
+          todosPedidos = data.orders;
+        } else if (Array.isArray(data.data)) {
+          todosPedidos = data.data;
+        }
+
+        setPedidosPagos(todosPedidos);
+        
+        if (todosPedidos.length > 0) {
+          setStatusMsg(`✅ ${todosPedidos.length} pedido(s) carregado(s)!`);
+        } else {
+          setStatusMsg(`⚠️ Nenhum pedido retornado. (Acesse como admin primeiro)`);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar pedidos:", err);
+        setStatusMsg("❌ Erro ao conectar com a API de pedidos.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregarPedidos();
+  }, []);
 
   const handleCalcularGanhador = () => {
     if (!numeroFederal) return alert('Digite o número sorteado na Loteria Federal!');
     
     if (pedidosPagos.length === 0) {
-      return alert('Nenhum pedido foi encontrado no banco de dados.');
+      return alert('Nenhum pedido foi retornado pela API. Certifique-se de estar logado como admin no navegador.');
     }
 
     const ganhador = encontrarGanhadorPago(numeroFederal, pedidosPagos);
@@ -80,8 +125,8 @@ export default function SorteioPage({ pedidosIniciais }) {
           🎲 Painel de Apuração do Sorteio
         </h1>
 
-        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#22c55e', marginBottom: '20px' }}>
-          ✅ {pedidosPagos.length} pedido(s) do banco prontos para apuração!
+        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: loading ? '#f59e0b' : '#22c55e', marginBottom: '20px' }}>
+          {loading ? "🔄 Lendo dados dos pedidos..." : statusMsg}
         </p>
 
         <div style={{ marginBottom: '16px' }}>
@@ -108,16 +153,17 @@ export default function SorteioPage({ pedidosIniciais }) {
 
         <button 
           onClick={handleCalcularGanhador}
+          disabled={loading}
           style={{
             width: '100%',
-            background: '#22c55e',
+            background: loading ? '#475569' : '#22c55e',
             color: '#fff',
             border: 'none',
             padding: '14px',
             borderRadius: '8px',
             fontSize: '1rem',
             fontWeight: 'bold',
-            cursor: 'pointer'
+            cursor: loading ? 'not-allowed' : 'pointer'
           }}
         >
           🔍 ENCONTRAR GANHADOR PAGO
@@ -151,31 +197,4 @@ export default function SorteioPage({ pedidosIniciais }) {
       </div>
     </div>
   );
-}
-
-export async function getServerSideProps() {
-  try {
-    let pedidos = [];
-    
-    if (prisma && prisma.participant) {
-      pedidos = await prisma.participant.findMany();
-    } else if (prisma && prisma.order) {
-      pedidos = await prisma.order.findMany();
-    }
-
-    const pedidosFormatados = JSON.parse(JSON.stringify(pedidos));
-
-    return {
-      props: {
-        pedidosIniciais: pedidosFormatados,
-      },
-    };
-  } catch (error) {
-    console.error("Erro no getServerSideProps:", error);
-    return {
-      props: {
-        pedidosIniciais: [],
-      },
-    };
-  }
 }
