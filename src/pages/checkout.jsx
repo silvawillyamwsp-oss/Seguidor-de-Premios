@@ -21,13 +21,14 @@ export default function Checkout() {
   const unitPrice = Number(process.env.NEXT_PUBLIC_TICKET_PRICE) || 0.06;
   const totalPrice = (totalQty * unitPrice).toFixed(2);
 
-  // Monitora o pagamento a cada 3 segundos assim que um paymentId for gerado
+  // Monitora o pagamento a cada 3 segundos
   useEffect(() => {
     if (!paymentId || isPaid) return;
 
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/check-payment?id=${paymentId}`);
+        if (!res.ok) return;
         const data = await res.json();
 
         if (data.status === 'approved') {
@@ -45,7 +46,6 @@ export default function Checkout() {
   const handleConfirmPayment = async (e) => {
     e.preventDefault();
 
-    // Remove parênteses, traços, espaços e caracteres não numéricos
     const cleanPhone = phone.replace(/\D/g, '');
 
     if (!name.trim() || cleanPhone.length < 10) {
@@ -61,22 +61,31 @@ export default function Checkout() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           name: name.trim(), 
-          phone: cleanPhone, // Envia o telefone higienizado (somente números)
+          phone: cleanPhone, 
           qty: totalQty,
           tickets_count: totalQty,
           total_price: totalPrice
         })
       });
 
-      const data = await response.json();
+      // Leitura segura do retorno para evitar quebra em HTML (500/404)
+      const rawText = await response.text();
+      let data = {};
+      
+      try {
+        data = JSON.parse(rawText);
+      } catch (jsonErr) {
+        console.error('Servidor não retornou JSON:', rawText);
+        alert(`Erro no servidor (Status HTTP ${response.status}). Verifique o console do navegador.`);
+        setLoading(false);
+        return;
+      }
 
       if (response.ok && (data.success || data.pixCode || data.pix_code)) {
-        // Mapeia fallbacks de propriedades da API
-        const finalPix = data.pixCode || data.pix_code || data.qrCode || "00020126360014BR.GOV.BCB.PIX0114+5511948865981520400005303986540500.065802BR5915SEGUIDOR PREMIOS6009SAO PAULO62070503***6304E2CA";
+        const finalPix = data.pixCode || data.pix_code || data.qrCode || "";
         
         let finalNumbers = data.allocatedNumbers || data.numbers || [];
         if (finalNumbers.length === 0) {
-          // Fallback visual caso a API não tenha retornado a lista explícita
           for (let i = 0; i < totalQty; i++) {
             finalNumbers.push(String(Math.floor(100000 + Math.random() * 900000)));
           }
@@ -88,11 +97,11 @@ export default function Checkout() {
         setPaymentId(data.paymentId || Date.now());
         setIsSuccess(true);
       } else {
-        alert(data.message || 'Erro ao processar reserva.');
+        alert(data.message || data.details || 'Erro ao processar reserva.');
       }
     } catch (error) {
       console.error('Erro de requisição:', error);
-      alert('Erro de conexão ao processar dados.');
+      alert('Erro de conexão ao enviar dados. Verifique sua internet.');
     } finally {
       setLoading(false);
     }
