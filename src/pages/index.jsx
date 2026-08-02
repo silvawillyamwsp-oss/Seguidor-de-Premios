@@ -270,12 +270,26 @@ export default function Home() {
           </div>
 
           {/* Sorteio a Definir */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '16px' }}>
             <span style={{ fontSize: '1.2rem' }}>🏆</span>
             <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#cbd5e1' }}>SORTEIO:</span>
             <div style={{ background: '#1e293b', border: '1px solid #334155', color: '#f59e0b', padding: '8px 16px', borderRadius: '20px', fontSize: '0.9rem', fontWeight: 'bold', letterSpacing: '0.5px' }}>
               Sorteio a Definir
             </div>
+          </div>
+
+          {/* CARD DE AVISO DO MERCADO PAGO (Abaixo do Sorteio) */}
+          <div style={{
+            background: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid #f59e0b',
+            borderRadius: '12px',
+            padding: '12px 14px',
+            marginBottom: '20px',
+            textAlign: 'center'
+          }}>
+            <p style={{ margin: 0, fontSize: '0.82rem', color: '#fef08a', lineHeight: '1.4', fontWeight: '500' }}>
+              O Mercado Pago não aceita PIX menor que <strong>R$ 0,50</strong>. Adicione mais umas cotinhas para garantir o Pix e aumentar suas chances de ganhar! 🚀
+            </p>
           </div>
 
           {/* Seleção de Cotas */}
