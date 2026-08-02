@@ -82,7 +82,7 @@ export default function Home() {
   return (
     <div style={{ background: '#020617', color: '#fff', minHeight: '100vh', fontFamily: 'system-ui, sans-serif', paddingBottom: '40px' }}>
       
-      {/* Estilo Global para Animações de Entrada */}
+      {/* Estilo Global para Animações */}
       <style jsx global>{`
         @keyframes fadeInSlide {
           0% {
@@ -101,6 +101,80 @@ export default function Home() {
         }
         .animate-purchase {
           animation: fadeInSlide 0.6s ease-out forwards;
+        }
+
+        /* Animação Pulsante para o Banner Bônus */
+        @keyframes pulseGlow {
+          0% {
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+            transform: scale(1);
+          }
+          50% {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.85);
+            transform: scale(1.02);
+          }
+          100% {
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+            transform: scale(1);
+          }
+        }
+        .bonus-banner-container {
+          margin-top: 16px;
+          width: 100%;
+          border-radius: 16px;
+          background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+          padding: 2px;
+          animation: pulseGlow 1.8s infinite ease-in-out;
+          box-sizing: border-box;
+        }
+        .bonus-banner-content {
+          background-color: #0f172a;
+          border-radius: 14px;
+          padding: 12px 14px;
+          text-align: center;
+        }
+        .bonus-title {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          color: #fbbf24;
+          font-weight: 900;
+          font-size: 0.85rem;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+        }
+        .bonus-banner-content p {
+          color: #e2e8f0;
+          font-size: 0.8rem;
+          margin: 6px 0;
+          line-height: 1.4;
+        }
+        .highlight-bonus {
+          color: #22c55e;
+          font-weight: 900;
+          font-size: 0.95rem;
+        }
+        .bonus-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(245, 158, 11, 0.15);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+          padding: 3px 12px;
+          border-radius: 20px;
+          font-size: 0.7rem;
+          color: #fcd34d;
+          font-weight: 700;
+          margin-top: 2px;
+          text-transform: uppercase;
+        }
+        .badge-dot {
+          width: 6px;
+          height: 6px;
+          background-color: #22c55e;
+          border-radius: 50%;
+          display: inline-block;
         }
       `}</style>
 
@@ -341,6 +415,24 @@ export default function Home() {
             }}>
             GARANTIR MINHAS COTAS (R$ {totalPrice}) ❯
           </button>
+
+          {/* BANNER PISCANTE DE BÔNUS (Inserido abaixo do botão) */}
+          <div className="bonus-banner-container">
+            <div className="bonus-banner-content">
+              <div className="bonus-title">
+                <span>🎁</span>
+                <span>OFERTA BÔNUS ESPECIAL</span>
+                <span>🎁</span>
+              </div>
+              <p>
+                Compre <strong style={{ color: '#fbbf24' }}>100 COTAS</strong> ou mais e ganhe <span className="highlight-bonus">+25 COTAS GRÁTIS</span>!
+              </p>
+              <div className="bonus-badge">
+                <span className="badge-dot"></span>
+                Aplicado automaticamente no Pix
+              </div>
+            </div>
+          </div>
 
         </div>
 
