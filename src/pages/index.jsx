@@ -110,8 +110,8 @@ export default function Home() {
             transform: scale(1);
           }
           50% {
-            box-shadow: 0 0 25px rgba(245, 158, 11, 0.85);
-            transform: scale(1.02);
+            box-shadow: 0 0 22px rgba(245, 158, 11, 0.85);
+            transform: scale(1.015);
           }
           100% {
             box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
@@ -119,7 +119,7 @@ export default function Home() {
           }
         }
         .bonus-banner-container {
-          margin-top: 16px;
+          margin-bottom: 20px;
           width: 100%;
           border-radius: 16px;
           background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
@@ -275,6 +275,24 @@ export default function Home() {
           CONCORRA A UM <span style={{ color: '#f59e0b' }}>IPHONE 17!</span>
         </h2>
 
+        {/* BANNER PISCANTE DE BÔNUS (Posicionado no topo, antes da imagem do prêmio) */}
+        <div className="bonus-banner-container">
+          <div className="bonus-banner-content">
+            <div className="bonus-title">
+              <span>🎁</span>
+              <span>OFERTA BÔNUS ESPECIAL</span>
+              <span>🎁</span>
+            </div>
+            <p>
+              Compre <strong style={{ color: '#fbbf24' }}>100 COTAS</strong> ou mais e ganhe <span className="highlight-bonus">+25 COTAS GRÁTIS</span>!
+            </p>
+            <div className="bonus-badge">
+              <span className="badge-dot"></span>
+              Aplicado automaticamente no Pix
+            </div>
+          </div>
+        </div>
+
         {/* CAMPO DE ÚLTIMAS COMPRAS */}
         <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px', marginBottom: '20px', overflow: 'hidden' }}>
           <h3 style={{ fontSize: '0.85rem', color: '#f59e0b', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -352,7 +370,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* CARD DE AVISO DO MERCADO PAGO (Abaixo do Sorteio) */}
+          {/* CARD DE AVISO DO MERCADO PAGO */}
           <div style={{
             background: 'rgba(245, 158, 11, 0.1)',
             border: '1px solid #f59e0b',
@@ -415,24 +433,6 @@ export default function Home() {
             }}>
             GARANTIR MINHAS COTAS (R$ {totalPrice}) ❯
           </button>
-
-          {/* BANNER PISCANTE DE BÔNUS (Inserido abaixo do botão) */}
-          <div className="bonus-banner-container">
-            <div className="bonus-banner-content">
-              <div className="bonus-title">
-                <span>🎁</span>
-                <span>OFERTA BÔNUS ESPECIAL</span>
-                <span>🎁</span>
-              </div>
-              <p>
-                Compre <strong style={{ color: '#fbbf24' }}>100 COTAS</strong> ou mais e ganhe <span className="highlight-bonus">+25 COTAS GRÁTIS</span>!
-              </p>
-              <div className="bonus-badge">
-                <span className="badge-dot"></span>
-                Aplicado automaticamente no Pix
-              </div>
-            </div>
-          </div>
 
         </div>
 
