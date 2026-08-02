@@ -4,12 +4,12 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
   let cotasPlanas = [];
 
   ordens.forEach(ordem => {
-    // 1. Extrai o nome e telefone
-    const nomeCliente = ordem.name || ordem.customerName || ordem.customer_name || ordem.comprador || 'Cliente';
-    const telefoneCliente = ordem.phone || ordem.customerPhone || ordem.customer_phone || ordem.telefone || 'Não informado';
+    // Pega o nome e o telefone do schema
+    const nomeCliente = ordem.name || 'Cliente';
+    const telefoneCliente = ordem.phone || 'Não informado';
 
-    // 2. Extrai as cotas (trata String, Array ou JSON)
-    let listaNumeros = ordem.numbers || ordem.cotas || ordem.numbers_list || [];
+    // O Prisma retorna 'numbers' como uma Array de Strings ex: ["198221", "932415"]
+    let listaNumeros = ordem.numbers || [];
 
     if (typeof listaNumeros === 'string') {
       listaNumeros = listaNumeros.split(',');
@@ -17,7 +17,7 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
 
     if (Array.isArray(listaNumeros)) {
       listaNumeros.forEach(num => {
-        // Limpa aspas, vírgulas e pega apenas os números
+        // Remove aspas, vírgulas ou caracteres não numéricos
         const numeroLimpo = String(num).replace(/[^0-9]/g, '');
         
         if (numeroLimpo.length > 0) {
@@ -31,13 +31,13 @@ function encontrarGanhadorPago(numeroSorteadoFederal, ordens) {
     }
   });
 
-  // Ordena as cotas da menor para a maior
+  // Ordena do menor para o maior
   const cotasOrdenadas = cotasPlanas
     .map(c => c.numero)
     .sort((a, b) => a - b);
 
   if (cotasOrdenadas.length === 0) {
-    return { erro: "Nenhuma cota paga/aprovada foi encontrada nos pedidos!" };
+    return { erro: "Nenhuma cota paga/aprovada foi encontrada nos pedidos do Prisma!" };
   }
 
   const sorteado = Number(numeroSorteadoFederal);
@@ -68,32 +68,29 @@ export default function WinnerSearch() {
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState('Buscando pedidos...');
 
-  // Busca os pedidos direto da sua rota interna do Prisma
   useEffect(() => {
     async function carregarPedidos() {
       try {
         setLoading(true);
 
-        // Tenta buscar da sua API interna de ordens
-        let res = await fetch('/api/admin/orders');
-        if (!res.ok) {
-          res = await fetch('/api/orders');
-        }
-
+        // Chama a sua API de admin que conecta ao Prisma
+        const res = await fetch('/api/admin/orders');
         const data = await res.json();
-        const listaPedidos = Array.isArray(data) ? data : (data.orders || data.data || []);
 
-        // Filtra apenas os pedidos Aprovados/Pagos
-        const aprovados = listaPedidos.filter(order => {
+        // Extrai a lista real do campo 'participants' retornado pelo seu orders.js
+        const todosPedidos = data.participants || data.orders || (Array.isArray(data) ? data : []);
+
+        // Filtra estritamente os pedidos aprovados
+        const aprovados = todosPedidos.filter(order => {
           const st = String(order.status).toLowerCase();
           return st === 'approved' || st === 'paid' || st === 'pago';
         });
 
-        setPedidosPagos(aprovados.length > 0 ? aprovados : listaPedidos);
-        setStatusMsg(`✅ ${aprovados.length || listaPedidos.length} pedido(s) carregado(s)!`);
+        setPedidosPagos(aprovados);
+        setStatusMsg(`✅ ${aprovados.length} pedido(s) APROVADO(S) do Prisma!`);
       } catch (err) {
         console.error("Erro ao carregar pedidos via API:", err);
-        setStatusMsg("❌ Erro ao buscar pedidos da API local.");
+        setStatusMsg("❌ Erro ao conectar com a API local do Prisma.");
       } finally {
         setLoading(false);
       }
@@ -106,7 +103,7 @@ export default function WinnerSearch() {
     if (!numeroFederal) return alert('Digite o número sorteado na Loteria Federal!');
     
     if (pedidosPagos.length === 0) {
-      return alert('Nenhum pedido foi retornado pela API.');
+      return alert('Nenhum pedido APROVADO foi encontrado no banco de dados.');
     }
 
     const ganhador = encontrarGanhadorPago(numeroFederal, pedidosPagos);
