@@ -275,7 +275,7 @@ export default function Home() {
           CONCORRA A UM <span style={{ color: '#f59e0b' }}>IPHONE 17!</span>
         </h2>
 
-        {/* BANNER PISCANTE DE BÔNUS (Posicionado no topo, antes da imagem do prêmio) */}
+        {/* BANNER PISCANTE DE BÔNUS (No topo) */}
         <div className="bonus-banner-container">
           <div className="bonus-banner-content">
             <div className="bonus-title">
@@ -410,7 +410,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Botão Garantir Cotas */}
+          {/* Botão Garantir Cotas em Duas Linhas */}
           <button 
             onClick={handleCheckout} 
             style={{ 
@@ -418,20 +418,24 @@ export default function Home() {
               background: 'linear-gradient(180deg, #ef4444 0%, #dc2626 100%)', 
               color: '#fff', 
               border: 'none', 
-              padding: '16px', 
+              padding: '12px 16px', 
               borderRadius: '30px', 
-              fontSize: '1.2rem', 
-              fontWeight: '900', 
               cursor: 'pointer', 
               boxShadow: '0 8px 20px rgba(220, 38, 38, 0.4)',
               textTransform: 'uppercase',
               letterSpacing: '1px',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px'
+              gap: '4px'
             }}>
-            GARANTIR MINHAS COTAS (R$ {totalPrice}) ❯
+            <span style={{ fontSize: '1.1rem', fontWeight: '900' }}>
+              GARANTIR MINHAS COTAS ❯
+            </span>
+            <span style={{ fontSize: '1rem', fontWeight: '700', color: '#fef08a' }}>
+              (R$ {totalPrice})
+            </span>
           </button>
 
         </div>
